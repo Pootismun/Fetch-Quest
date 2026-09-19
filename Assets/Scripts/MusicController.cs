@@ -10,11 +10,19 @@ public class NewMonoBehaviourScript : MonoBehaviour
     [SerializeField] private AudioClip squirrelNormalMusic;
     [SerializeField] private float maxIntroSeconds = 3f;
 
-    private AudioSource musicSource;
+    // Small delay so both clips are scheduled before they need to start.
+    private const double StartDelay = 0.05;
+    private AudioSource introSource;
+    private AudioSource loopSource;
 
     private void Awake()
     {
-        musicSource = GetComponent<AudioSource>();
+        introSource = GetComponent<AudioSource>();
+
+        loopSource = gameObject.AddComponent<AudioSource>();
+        loopSource.playOnAwake = false;
+        loopSource.volume = introSource.volume;
+        loopSource.outputAudioMixerGroup = introSource.outputAudioMixerGroup;
     }
 
     private void Start()
@@ -25,25 +33,27 @@ public class NewMonoBehaviourScript : MonoBehaviour
             return;
         }
 
-        StartCoroutine(PlayIntroThenNormalMusic());
-    }
+        // Intro length in seconds.
+        double introClipLength = (double)introMusic.samples / introMusic.frequency;
 
-    private IEnumerator PlayIntroThenNormalMusic()
-    {
-        // Play the intro music once.
-        musicSource.Stop();
-        musicSource.loop = false;
-        musicSource.clip = introMusic;
-        musicSource.Play();
+        // Intro plays until clip ends or maxIntroSeconds passes, whichever is earliest.
+        double introPlayTime = System.Math.Min(introClipLength, maxIntroSeconds);
 
-        // Wait until the intro clip ends or maxIntroSeconds passes, whichever is earliest.
-        float waitTime = Mathf.Min(introMusic.length, maxIntroSeconds);
-        yield return new WaitForSeconds(waitTime);
+        // Both start times use the audio clock so the switch between audios has no gap.
+        double introStart = AudioSettings.dspTime + StartDelay;
+        double loopStart = introStart + introPlayTime;
 
-        // Switch to the squirrel normal music and loop it.
-        musicSource.Stop();
-        musicSource.clip = squirrelNormalMusic;
-        musicSource.loop = true;
-        musicSource.Play();
+        introSource.clip = introMusic;
+        introSource.loop = false;
+        introSource.PlayScheduled(introStart);
+
+        if (introClipLength > maxIntroSeconds)
+        {
+            introSource.SetScheduledEndTime(loopStart);
+        }
+
+        loopSource.clip = squirrelNormalMusic;
+        loopSource.loop = true;
+        loopSource.PlayScheduled(loopStart);
     }
 }
