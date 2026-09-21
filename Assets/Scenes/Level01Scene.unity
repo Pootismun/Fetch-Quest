@@ -24429,6 +24429,8 @@ MonoBehaviour:
   ghostExitWall: {fileID: 21300000, guid: 17ce688b19c7d8c4d909c994d8191f9c, type: 3}
   pellet: {fileID: 21300000, guid: 9040d6dfbab94d0438f03330f312c804, type: 3}
   floor: {fileID: 21300000, guid: eae983d7c3d2cbc409d14fc7b5f00b8e, type: 3}
+  bonusItem: {fileID: 21300000, guid: e89fc95a33d17fb4487e6ee456f28d2b, type: 3}
+  bonusPosition: {x: 0, y: -3}
 --- !u!1 &824892063
 GameObject:
   m_ObjectHideFlags: 0
