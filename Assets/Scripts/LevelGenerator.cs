@@ -15,6 +15,11 @@ public class LevelGenerator : MonoBehaviour
     [SerializeField] private Sprite ghostExitWall;
     [SerializeField] private Sprite pellet;
     [SerializeField] private Sprite floor;
+    [SerializeField] private Sprite bonusItem;
+
+    [Header("Bonus Item")]
+    [Tooltip("The level is centred on (0, 0) and one unit is one tile.")]
+    [SerializeField] private Vector2 bonusPosition = new Vector2(0f, -3f);
 
     // 0: Empty, 1: Outside Corner, 2: Outside Wall, 3: Inside Corner
     // 4: Inside Wall, 5: Pellet, 6: Power Pellet, 7: T Junction, 8: Ghost Exit Wall
@@ -252,6 +257,26 @@ public class LevelGenerator : MonoBehaviour
                 }
             }
         }
+
+        PlaceBonusItem(root.transform);
+    }
+
+    private void PlaceBonusItem(Transform levelRoot)
+    {
+        int row = Mathf.RoundToInt((rows - 1) / 2f - bonusPosition.y);
+        int column = Mathf.RoundToInt(bonusPosition.x + (columns - 1) / 2f);
+        if (IsWall(row, column))
+        {
+            return;
+        }
+
+        Transform bonus = NewGroup("Bonus", levelRoot);
+        GameObject bonusObject = Instantiate(tilePrefab, new Vector3(bonusPosition.x, bonusPosition.y, 0f), Quaternion.identity, bonus);
+        bonusObject.name = bonusItem.name;
+
+        SpriteRenderer bonusRenderer = bonusObject.GetComponent<SpriteRenderer>();
+        bonusRenderer.sprite = bonusItem;
+        bonusRenderer.sortingOrder = 1;
     }
 
     private void PlacePiece(Sprite sprite, Vector3 position, float angle, int sortingOrder, Transform parent, int r, int c)
@@ -363,7 +388,7 @@ public class LevelGenerator : MonoBehaviour
 
     private bool HasEverythingAssigned()
     {
-        if (tilePrefab == null || powerPelletPrefab == null || outsideCorner == null || outsideWall == null || insideCorner == null || insideWall == null || tJunction == null || ghostExitWall == null || pellet == null || floor == null)
+        if (tilePrefab == null || powerPelletPrefab == null || outsideCorner == null || outsideWall == null || insideCorner == null || insideWall == null || tJunction == null || ghostExitWall == null || pellet == null || floor == null || bonusItem == null)
         {
             Debug.LogError("LevelGenerator, assign every prefab and sprite in the inspector.", this);
             return false;
