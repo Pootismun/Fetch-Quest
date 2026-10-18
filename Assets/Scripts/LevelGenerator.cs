@@ -339,10 +339,24 @@ public class LevelGenerator : MonoBehaviour
         levelCamera.orthographic = true;
         levelCamera.transform.position = new Vector3(0f, 0f, -10f);
 
-        // Fit to Screen
-        float halfHeight = rows / 2f + CameraMargin;
-        float halfWidth = columns / 2f + CameraMargin;
-        levelCamera.orthographicSize = Mathf.Max(halfHeight, halfWidth / levelCamera.aspect);
+        const float verticalMargin = 2f;
+        const float hudColumnRefWidth = 440f;
+        const float refWidth = 1920f;
+        const float refHeight = 1080f;
+        const float match = 0.5f;
+
+        float screenWidth = Screen.width;
+        float screenHeight = Screen.height;
+
+        float scaleFactor = Mathf.Pow(screenWidth / refWidth, 1f - match) * Mathf.Pow(screenHeight / refHeight, match);
+
+        float halfHeight = rows / 2f + verticalMargin;
+
+        float reservedPixels = 2f * hudColumnRefWidth * scaleFactor;
+        float availableWidthPixels = Mathf.Max(screenWidth - reservedPixels, 1f);
+        float sizeForWidth = (columns * screenHeight) / (2f * availableWidthPixels);
+
+        levelCamera.orthographicSize = Mathf.Max(halfHeight, sizeForWidth);
     }
 
     // Small Helpers
