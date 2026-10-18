@@ -15,4 +15,9 @@ public class MainMenuController : MonoBehaviour
     {
         SceneManager.LoadScene(Level2SceneName);
     }
+
+    public void OnExitClicked()
+    {
+        SceneManager.LoadScene("StartScene");
+    }
 }
