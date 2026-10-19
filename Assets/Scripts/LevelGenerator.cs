@@ -59,6 +59,42 @@ public class LevelGenerator : MonoBehaviour
     private int[,] links; // Which directions each wall piece links to
     private bool[,] linksKnown;
 
+    public int Rows => rows;
+    public int Columns => columns;
+
+    public bool IsWalkable(int row, int column)
+    {
+        if (row < 0 || row >= rows || column < 0 || column >= columns)
+        {
+            return false;
+        }
+
+        return !IsWall(row, column);
+    }
+
+    public bool HasPelletAt(int row, int column)
+    {
+        if (row < 0 || row >= rows || column < 0 || column >= columns)
+        {
+            return false;
+        }
+
+        int type = map[row, column];
+        return type == 5 || type == 6;
+    }
+        
+    public Vector3 CellToWorld(int row, int column)
+    {
+        return new Vector3(column - (columns - 1) / 2f, (rows - 1) / 2f - row, 0f);
+    }
+
+    public Vector2Int WorldToCell(Vector3 worldPosition)
+    {
+        int column = Mathf.RoundToInt(worldPosition.x + (columns - 1) / 2f);
+        int row = Mathf.RoundToInt((rows - 1) / 2f - worldPosition.y);
+        return new Vector2Int(column, row);
+    }
+
     private void Start()
     {
         if (!HasEverythingAssigned())
@@ -235,6 +271,14 @@ public class LevelGenerator : MonoBehaviour
         floorRenderer.size = new Vector2(columns, rows);
         floorRenderer.sortingOrder = -10;
 
+        GameObject maskObject = new GameObject("LevelMask");
+        maskObject.transform.SetParent(root.transform, false);
+        maskObject.transform.position = Vector3.zero;
+        maskObject.transform.localScale = new Vector3(columns, rows, 1f);
+
+        SpriteMask levelMask = maskObject.AddComponent<SpriteMask>();
+        levelMask.sprite = floor;
+
         for (int r = 0; r < rows; r++)
         {
             for (int c = 0; c < columns; c++)
@@ -257,8 +301,6 @@ public class LevelGenerator : MonoBehaviour
                 }
             }
         }
-
-        PlaceBonusItem(root.transform);
     }
 
     private void PlaceBonusItem(Transform levelRoot)
