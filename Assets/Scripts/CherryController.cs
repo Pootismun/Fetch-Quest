@@ -1,6 +1,4 @@
 using UnityEngine;
-using UnityEngine.Scripting.APIUpdating;
-using UnityEngine.VFX;
 
 public class CherryController : MonoBehaviour
 {
@@ -21,6 +19,7 @@ public class CherryController : MonoBehaviour
     private float distanceTraveled;
     private float totalTravelDistance;
     private float timer;
+    private bool wasActive;
 
     private void Awake()
     {
@@ -39,6 +38,12 @@ public class CherryController : MonoBehaviour
     {
         if (activeCherry == null)
         {
+            if (wasActive)
+            {
+                timer = respawnDelay;
+                wasActive = false;
+            }
+
             timer -= Time.deltaTime;
             if(timer <= 0f)
             {
@@ -47,6 +52,7 @@ public class CherryController : MonoBehaviour
             return;
         }
 
+        wasActive = true;
         Move();
     }
     
@@ -64,6 +70,7 @@ public class CherryController : MonoBehaviour
         Vector3 spawnPosition = RandomEdgePosition(halfWidth, halfHeight);
 
         activeCherry = Instantiate(cherryPrefab, spawnPosition, Quaternion.identity);
+        activeCherry.AddComponent<Cherry>();
 
         SpriteRenderer cherryRenderer = activeCherry.GetComponent<SpriteRenderer>();
         cherryRenderer.sortingOrder = sortingOrder;
@@ -101,7 +108,6 @@ public class CherryController : MonoBehaviour
         {
             Destroy(activeCherry);
             activeCherry = null;
-            timer = respawnDelay;
         }
     }
 }
