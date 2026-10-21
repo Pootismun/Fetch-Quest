@@ -219,8 +219,8 @@ public class PacStudentController : MonoBehaviour
         }
 
         StopMoving();
-        
-        if (attempted != None && attempted != lastBumpDirection)
+
+        if (attempted != None && lastBumpDirection == None)
         {
             Bump(attempted);
             lastBumpDirection = attempted;

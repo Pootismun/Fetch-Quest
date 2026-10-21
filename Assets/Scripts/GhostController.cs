@@ -33,6 +33,8 @@ public class GhostController : MonoBehaviour
 
     private bool leavingHouse;
     private readonly Queue<Vector2Int> exitPath = new Queue<Vector2Int>();
+    private int[,] dogDistance;
+    private readonly Queue<Vector2Int> distanceQueue = new Queue<Vector2Int>();
 
     //Ghost 4 only
     private bool followingWall;
@@ -334,7 +336,7 @@ public class GhostController : MonoBehaviour
         if (stateController.IsVulnerable)
         {
             followingWall = false;
-            return ChooseByDistanceToDog(options, true);
+            return ChooseFlee(options);
         }
 
         switch (ghostNumber)
@@ -387,6 +389,91 @@ public class GhostController : MonoBehaviour
         }
 
         return ChooseRandom(matching);
+    }
+
+    // Note for Marker: No Unity pathfinding used but I wanted to make the squirrels pathfinding better.
+    private Vector2Int ChooseFlee(List<Vector2Int> options)
+    {
+        if (dog == null)
+        {
+            return ChooseRandom(options);
+        }
+
+        BuildDogDistanceMap();
+
+        int bestDistance = int.MinValue;
+        List<Vector2Int> best = new List<Vector2Int>();
+
+        foreach (Vector2Int direction in options)
+        {
+            Vector2Int next = currentCell + direction;
+            int distance = dogDistance[next.y, next.x];
+
+            if (distance < 0)
+            {
+                distance = int.MaxValue;
+            }
+
+            if (distance > bestDistance)
+            {
+                bestDistance = distance;
+                best.Clear();
+                best.Add(direction);
+            }
+            else if (distance == bestDistance)
+            {
+                best.Add(direction);
+            }
+        }
+
+        return ChooseRandom(best);
+    }
+
+    private void BuildDogDistanceMap()
+    {
+        int rows = levelGenerator.Rows;
+        int columns = levelGenerator.Columns;
+
+        if (dogDistance == null || dogDistance.GetLength(0) != rows || dogDistance.GetLength(1) != columns)
+        {
+            dogDistance = new int[rows, columns];
+        }
+
+        for (int r = 0; r < rows; r++)
+        {
+            for (int c = 0; c < columns; c++)
+            {
+                dogDistance[r, c] = -1;
+            }
+        }
+
+        Vector2Int start = levelGenerator.WorldToCell(dog.transform.position);
+        if (start.x < 0 || start.x >= columns || start.y < 0 || start.y >= rows)
+        {
+            return;
+        }
+
+        distanceQueue.Clear();
+        dogDistance[start.y, start.x] = 0;
+        distanceQueue.Enqueue(start);
+
+        while (distanceQueue.Count > 0)
+        {
+            Vector2Int cell = distanceQueue.Dequeue();
+
+            foreach (Vector2Int direction in AllDirections)
+            {
+                Vector2Int next = cell + direction;
+
+                if (!levelGenerator.IsGhostWalkable(next.y, next.x) || dogDistance[next.y, next.x] != -1)
+                {
+                    continue;
+                }
+
+                dogDistance[next.y, next.x] = dogDistance[cell.y, cell.x] + 1;
+                distanceQueue.Enqueue(next);
+            }
+        }
     }
 
     private Vector2Int ChooseClockwise(List<Vector2Int> options)
