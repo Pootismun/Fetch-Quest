@@ -1,3 +1,4 @@
+using TMPro;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -79,6 +80,12 @@ public class GameOverManager : MonoBehaviour
 
         blockingImage.SetActive(true);
         gameOverText.SetActive(true);
+
+        TMP_Text label = gameOverText.GetComponent<TMP_Text>();
+        if (label != null && levelGenerator != null && levelGenerator.PelletsRemaining == 0)
+        {
+            label.text = label.text + "\nYOU WIN!";
+        }
 
         SaveHighScore();
 

@@ -21,6 +21,11 @@ public class LevelGenerator : MonoBehaviour
     [Tooltip("The level is centred on (0, 0) and one unit is one tile.")]
     [SerializeField] private Vector2 bonusPosition = new Vector2(0f, -3f);
 
+    [Header("Procedural Generation")]
+    [SerializeField] private bool procedural = false;
+    [Tooltip("0 gives a new random layout every play. Any other number repeats the same layout.")]
+    [SerializeField] private int seed = 0;
+
     // 0: Empty, 1: Outside Corner, 2: Outside Wall, 3: Inside Corner
     // 4: Inside Wall, 5: Pellet, 6: Power Pellet, 7: T Junction, 8: Ghost Exit Wall
     private int[,] levelMap =
@@ -201,6 +206,11 @@ public class LevelGenerator : MonoBehaviour
             Destroy(manualLevel);
         }
 
+        if (procedural)
+        {
+            GenerateRandomLayout();
+        }
+
         BuildFullMap();
         WorkOutLinks();
         SpawnLevel();
@@ -225,6 +235,94 @@ public class LevelGenerator : MonoBehaviour
             {
                 int sourceColumn = c < quarterColumns ? c : columns - 1 - c;
                 map[r, c] = levelMap[sourceRow, sourceColumn];
+            }
+        }
+    }
+
+    private System.Random rng;
+
+    private void GenerateRandomLayout()
+    {
+        rng = seed == 0 ? new System.Random() : new System.Random(seed);
+
+        // Top area: rows 2-4, columns 2-11.
+        ClearToPellets(2, 2, 4, 11);
+        FillRegion(2, 2, 4, 11);
+
+        // Left area: rows 6-7, columns 2-5.
+        ClearToPellets(6, 2, 7, 5);
+        FillRegion(6, 2, 7, 5);
+
+        PlaceRandomPowerPellet();
+    }
+
+    private void PlaceRandomPowerPellet()
+    {
+        levelMap[3, 1] = 5;
+
+        System.Collections.Generic.List<Vector2Int> options = new System.Collections.Generic.List<Vector2Int>();
+
+        for (int r = 1; r <= 8; r++)
+        {
+            for (int c = 1; c <= 12; c++)
+            {
+                if (levelMap[r, c] == 5 && !(r == 1 && c == 1))
+                {
+                    options.Add(new Vector2Int(c, r));
+                }
+            }
+        }
+
+        Vector2Int chosen = options[rng.Next(options.Count)];
+        levelMap[chosen.y, chosen.x] = 6;
+    }
+
+    private void ClearToPellets(int top, int left, int bottom, int right)
+    {
+        for (int r = top; r <= bottom; r++)
+        {
+            for (int c = left; c <= right; c++)
+            {
+                levelMap[r, c] = 5;
+            }
+        }
+    }
+
+    private void FillRegion(int top, int left, int bottom, int right)
+    {
+        int width = right - left + 1;
+
+        if (width >= 5 && (width > 5 || rng.NextDouble() < 0.4))
+        {
+            int lane = rng.Next(left + 2, right - 1);
+            FillRegion(top, left, bottom, lane - 1);
+            FillRegion(top, lane + 1, bottom, right);
+            return;
+        }
+
+        PlaceBlock(top, left, bottom - top + 1, width);
+    }
+    private void PlaceBlock(int top, int left, int blockHeight, int blockWidth)
+    {
+        for (int r = top; r < top + blockHeight; r++)
+        {
+            for (int c = left; c < left + blockWidth; c++)
+            {
+                bool edgeRow = r == top || r == top + blockHeight - 1;
+                bool edgeColumn = c == left || c == left + blockWidth - 1;
+
+                if (edgeRow && edgeColumn)
+                {
+                    levelMap[r, c] = 3;
+                }
+                else if (edgeRow || edgeColumn)
+                {
+                    levelMap[r, c] = 4;
+                }
+                else
+                {
+                    levelMap[r, c] = 0;
+                }
             }
         }
     }
@@ -499,7 +597,6 @@ public class LevelGenerator : MonoBehaviour
     }
 
     // Camera Control
-
     private void FitCamera()
     {
         Camera levelCamera = Camera.main;
