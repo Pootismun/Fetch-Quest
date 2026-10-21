@@ -1,23 +1,23 @@
-using System.Collections;
 using UnityEngine;
 
-// Plays intro music, then loops the level soundtrack (squirrel normal music).
+// Plays intro music during the round start countdown, then loops the level soundtrack (squirrel normal music).
 // Note for marker: the squirrels are the "ghosts".
 [RequireComponent(typeof(AudioSource))]
-public class NewMonoBehaviourScript : MonoBehaviour
+public class MusicController : MonoBehaviour
 {
     [SerializeField] private AudioClip introMusic;
     [SerializeField] private AudioClip squirrelNormalMusic;
-    [SerializeField] private float maxIntroSeconds = 3f;
+    [SerializeField] private AudioClip squirrelScaredMusic;
 
-    // Small delay so both clips are scheduled before they need to start.
-    private const double StartDelay = 0.05;
     private AudioSource introSource;
     private AudioSource loopSource;
+
+    private float normalMusicTime;
 
     private void Awake()
     {
         introSource = GetComponent<AudioSource>();
+        introSource.playOnAwake = false;
 
         loopSource = gameObject.AddComponent<AudioSource>();
         loopSource.playOnAwake = false;
@@ -25,35 +25,55 @@ public class NewMonoBehaviourScript : MonoBehaviour
         loopSource.outputAudioMixerGroup = introSource.outputAudioMixerGroup;
     }
 
-    private void Start()
+    public void PlayIntroMusic()
     {
-        if (introMusic == null || squirrelNormalMusic == null)
+        if (introMusic == null)
         {
             Debug.LogError("For MusicController, check that both music clips are assigned in the inspector!!!", this);
             return;
         }
 
-        // Intro length in seconds.
-        double introClipLength = (double)introMusic.samples / introMusic.frequency;
-
-        // Intro plays until clip ends or maxIntroSeconds passes, whichever is earliest.
-        double introPlayTime = System.Math.Min(introClipLength, maxIntroSeconds);
-
-        // Both start times use the audio clock so the switch between audios has no gap.
-        double introStart = AudioSettings.dspTime + StartDelay;
-        double loopStart = introStart + introPlayTime;
-
         introSource.clip = introMusic;
         introSource.loop = false;
-        introSource.PlayScheduled(introStart);
+        introSource.Play();
+    }
 
-        if (introClipLength > maxIntroSeconds)
+    public void StopIntroMusic()
+    {
+        introSource.Stop();
+    }
+
+    public void StopAllMusic()
+    {
+        introSource.Stop();
+        loopSource.Stop();
+    }
+
+    public void PlayScaredMusic()
+    {
+        if (squirrelScaredMusic == null || loopSource.clip == squirrelScaredMusic)
         {
-            introSource.SetScheduledEndTime(loopStart);
+            return;
+        }
+
+        normalMusicTime = loopSource.time;
+
+        loopSource.clip = squirrelScaredMusic;
+        loopSource.loop = true;
+        loopSource.time = 0f;
+        loopSource.Play();
+    }
+
+    public void PlayNormalMusic()
+    {
+        if (squirrelNormalMusic == null || loopSource.clip == squirrelNormalMusic)
+        {
+            return;
         }
 
         loopSource.clip = squirrelNormalMusic;
         loopSource.loop = true;
-        loopSource.PlayScheduled(loopStart);
+        loopSource.time = normalMusicTime;
+        loopSource.Play();
     }
 }

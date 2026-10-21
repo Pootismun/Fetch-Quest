@@ -12,11 +12,18 @@ public class PacStudentController : MonoBehaviour
     [Header("Audio")]
     [SerializeField] private AudioClip moveClip;
     [SerializeField] private AudioClip eatPelletMoveClip;
+    [SerializeField] private AudioClip wallBumpClip;
     [SerializeField] private float moveVolume = 1f;
     [SerializeField] private float eatPelletVolume = 1f;
+    [SerializeField] private float wallBumpVolume = 1f;
+    [SerializeField] private AudioClip powerPelletClip;
+    [SerializeField] private float powerPelletVolume = 1f;
+    [SerializeField] private AudioClip cherryClip;
+    [SerializeField] private float cherryVolume = 1f;
 
     [Header("Effects")]
     [SerializeField] private ParticleSystem dustEffect;
+    [SerializeField] private ParticleSystem wallBumpEffect;
 
     private static readonly Vector2Int Up = new Vector2Int(0, -1);
     private static readonly Vector2Int Down = new Vector2Int(0, 1);
@@ -27,6 +34,9 @@ public class PacStudentController : MonoBehaviour
     private Animator animator;
     private AudioSource audioSource;
     private AudioSource eatAudioSource;
+    private AudioSource wallBumpAudioSource;
+    private AudioSource powerPelletAudioSource;
+    private AudioSource cherryAudioSource;
 
     private Vector2Int currentCell;
     private Vector2Int targetCell;
@@ -35,14 +45,27 @@ public class PacStudentController : MonoBehaviour
 
     private Vector2Int lastInput = None;
     private Vector2Int currentInput = None;
+    private Vector2Int lastBumpDirection = None;
     private string playingAnimation = "";
     private bool initialized;
+
+    private SpriteRenderer spriteRenderer;
+    private GameObject teleportClone;
+    private SpriteRenderer teleportCloneRenderer;
+    private Vector3 teleportCloneFrom;
+    private Vector3 teleportCloneTo;
+    private bool pendingTeleport;
+    private Vector2Int pendingTeleportCell;
 
     private void Awake()
     {
         animator = GetComponent<Animator>();
         audioSource = GetComponent<AudioSource>();
         eatAudioSource = gameObject.AddComponent<AudioSource>();
+        wallBumpAudioSource = gameObject.AddComponent<AudioSource>();
+        powerPelletAudioSource = gameObject.AddComponent<AudioSource>();
+        cherryAudioSource = gameObject.AddComponent<AudioSource>();
+        spriteRenderer = GetComponent<SpriteRenderer>();
 
         if (levelGenerator == null)
         {
@@ -63,6 +86,21 @@ public class PacStudentController : MonoBehaviour
         eatAudioSource.loop = false;
         eatAudioSource.clip = eatPelletMoveClip;
         eatAudioSource.volume = eatPelletVolume;
+
+        wallBumpAudioSource.playOnAwake = false;
+        wallBumpAudioSource.loop = false;
+        wallBumpAudioSource.clip = wallBumpClip;
+        wallBumpAudioSource.volume = wallBumpVolume;
+
+        powerPelletAudioSource.playOnAwake = false;
+        powerPelletAudioSource.loop = false;
+        powerPelletAudioSource.clip = powerPelletClip;
+        powerPelletAudioSource.volume = powerPelletVolume;
+
+        cherryAudioSource.playOnAwake = false;
+        cherryAudioSource.loop = false;
+        cherryAudioSource.clip = cherryClip;
+        cherryAudioSource.volume = cherryVolume;
     }
 
     private void Initialize()
@@ -137,19 +175,68 @@ public class PacStudentController : MonoBehaviour
 
     private void TryStartMove()
     {
-        if (lastInput != None && IsWalkable(currentCell + lastInput))
+        Vector2Int attempted = lastInput != None ? lastInput : currentInput;
+
+        if (lastInput != None && TryMoveOrTeleport(lastInput))
         {
-            currentInput = lastInput;
-            BeginMove(currentCell + currentInput);
+            lastBumpDirection = None;
+            return;
         }
-        else if (currentInput != None && IsWalkable(currentCell + currentInput))
+
+        if (currentInput != None && TryMoveOrTeleport(currentInput))
         {
-            BeginMove(currentCell + currentInput);
+            lastBumpDirection = None;
+            return;
         }
-        else
+
+        StopMoving();
+        
+        if (attempted != None && attempted != lastBumpDirection)
         {
-            StopMoving();
+            Bump(attempted);
+            lastBumpDirection = attempted;
         }
+    }
+
+    private bool TryMoveOrTeleport(Vector2Int direction)
+    {
+        Vector2Int nextCell = currentCell + direction;
+
+        if (IsWalkable(nextCell))
+        {
+            currentInput = direction;
+            BeginMove(nextCell);
+            return true;
+        }
+
+        if (levelGenerator.TryGetTeleportDestination(currentCell, direction, out Vector2Int teleportCell))
+        {
+            currentInput = direction;
+            StartTeleport(direction, teleportCell);
+            return true;
+        }
+
+        return false;
+    }
+
+    private void StartTeleport(Vector2Int direction, Vector2Int teleportCell)
+    {
+        pendingTeleport = true;
+        pendingTeleportCell = teleportCell;
+
+        Vector2Int entryOutsideCell = teleportCell - direction;
+        teleportCloneFrom = levelGenerator.CellToWorld(entryOutsideCell.y, entryOutsideCell.x);
+        teleportCloneTo = levelGenerator.CellToWorld(teleportCell.y, teleportCell.x);
+
+        teleportClone = new GameObject("TeleportClone");
+        teleportCloneRenderer = teleportClone.AddComponent<SpriteRenderer>();
+        teleportCloneRenderer.sprite = spriteRenderer.sprite;
+        teleportCloneRenderer.sortingLayerID = spriteRenderer.sortingLayerID;
+        teleportCloneRenderer.sortingOrder = spriteRenderer.sortingOrder;
+        teleportCloneRenderer.maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
+        teleportClone.transform.position = teleportCloneFrom;
+
+        BeginMove(currentCell + direction);
     }
 
     private void BeginMove(Vector2Int nextCell)
@@ -171,7 +258,7 @@ public class PacStudentController : MonoBehaviour
             audioSource.Play();
         }
 
-        bool willEatPellet = levelGenerator.HasPelletAt(nextCell.y, nextCell.x);
+        bool willEatPellet = levelGenerator.HasRegularPelletAt(nextCell.y, nextCell.x);
         if (willEatPellet && eatPelletMoveClip != null && !eatAudioSource.isPlaying)
         {
             eatAudioSource.Play();
@@ -194,14 +281,47 @@ public class PacStudentController : MonoBehaviour
         }
     }
 
+    private void Bump(Vector2Int direction)
+    {
+        if (wallBumpEffect != null)
+        {
+            Vector3 bumpPosition = levelGenerator.CellToWorld(currentCell.y, currentCell.x)
+                + new Vector3(direction.x, -direction.y, 0f) * 0.5f;
+            wallBumpEffect.transform.position = bumpPosition;
+            wallBumpEffect.Play();
+        }
+
+        if (wallBumpClip != null)
+        {
+            wallBumpAudioSource.Play();
+        }
+    }
+
+
     private void AdvanceMove()
     {
         lerpT += Time.deltaTime * tilesPerSecond;
-        
+
         while (lerpT >= 1f && isMoving)
         {
-            transform.position = levelGenerator.CellToWorld(targetCell.y, targetCell.x);
-            currentCell = targetCell;
+            if (pendingTeleport)
+            {
+                currentCell = pendingTeleportCell;
+                transform.position = levelGenerator.CellToWorld(currentCell.y, currentCell.x);
+
+                if (teleportClone != null)
+                {
+                    Destroy(teleportClone);
+                    teleportClone = null;
+                }
+                pendingTeleport = false;
+            }
+            else
+            {
+                transform.position = levelGenerator.CellToWorld(targetCell.y, targetCell.x);
+                currentCell = targetCell;
+            }
+
             isMoving = false;
             float overshoot = lerpT - 1f;
 
@@ -215,6 +335,62 @@ public class PacStudentController : MonoBehaviour
             Vector3 from = levelGenerator.CellToWorld(currentCell.y, currentCell.x);
             Vector3 to = levelGenerator.CellToWorld(targetCell.y, targetCell.x);
             transform.position = Vector3.Lerp(from, to, lerpT);
+
+            if (pendingTeleport && teleportCloneRenderer != null)
+            {
+                teleportCloneRenderer.sprite = spriteRenderer.sprite;
+                teleportClone.transform.position = Vector3.Lerp(teleportCloneFrom, teleportCloneTo, lerpT);
+            }
+        }
+    }
+    public void StopAllSounds()
+    {
+        foreach (AudioSource source in GetComponents<AudioSource>())
+        {
+            source.Stop();
+        }
+    }
+
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        if (!enabled)
+        {
+            return;
+        }
+
+        if (other.TryGetComponent(out Pellet pellet))
+        {
+            ScoreManager.Instance.AddScore(10);
+            levelGenerator.MarkPelletEaten(pellet.Row, pellet.Column);
+            Destroy(other.gameObject);
+        }
+        else if (other.TryGetComponent(out PowerPellet powerPellet))
+        {
+            ScoreManager.Instance.AddScore(50);
+            levelGenerator.MarkPelletEaten(powerPellet.Row, powerPellet.Column);
+
+            if (powerPelletClip != null)
+            {
+                powerPelletAudioSource.Play();
+            }
+
+            if (GhostScaredManager.Instance != null)
+            {
+                GhostScaredManager.Instance.StartScared();
+            }
+
+            Destroy(other.gameObject);
+        }
+        else if (other.TryGetComponent(out Cherry cherry))
+        {
+            ScoreManager.Instance.AddScore(100);
+
+            if (cherryClip != null)
+            {
+                cherryAudioSource.Play();
+            }
+
+            Destroy(other.gameObject);
         }
     }
 

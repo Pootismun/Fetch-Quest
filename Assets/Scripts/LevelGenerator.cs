@@ -55,9 +55,13 @@ public class LevelGenerator : MonoBehaviour
 
     private int rows;   // Size of full level
     private int columns;
+    private const int TeleporterRow = 14;
     private int[,] map; // Full level after mirroring
     private int[,] links; // Which directions each wall piece links to
     private bool[,] linksKnown;
+    private bool[,] pelletEaten;
+    private int pelletsRemaining = -1;
+    public int PelletsRemaining => pelletsRemaining;
 
     public int Rows => rows;
     public int Columns => columns;
@@ -79,10 +83,43 @@ public class LevelGenerator : MonoBehaviour
             return false;
         }
 
+        if (pelletEaten[row, column])
+        {
+            return false;
+        }
+
         int type = map[row, column];
         return type == 5 || type == 6;
     }
-        
+
+    public bool HasRegularPelletAt(int row, int column)
+    {
+        if (row < 0 || row >= rows || column < 0 || column >= columns)
+        {
+            return false;
+        }
+
+        if (pelletEaten[row, column])
+        {
+            return false;
+        }
+
+        return map[row, column] == 5;
+    }
+
+    public void MarkPelletEaten(int row, int column)
+    {
+        if (row >= 0 && row < rows && column >= 0 && column < columns)
+        {
+            if (HasPelletAt(row, column))
+            {
+                pelletsRemaining--;
+            }
+
+            pelletEaten[row, column] = true;
+        }
+    }
+
     public Vector3 CellToWorld(int row, int column)
     {
         return new Vector3(column - (columns - 1) / 2f, (rows - 1) / 2f - row, 0f);
@@ -93,6 +130,27 @@ public class LevelGenerator : MonoBehaviour
         int column = Mathf.RoundToInt(worldPosition.x + (columns - 1) / 2f);
         int row = Mathf.RoundToInt((rows - 1) / 2f - worldPosition.y);
         return new Vector2Int(column, row);
+    }
+
+    public bool TryGetTeleportDestination(Vector2Int fromCell, Vector2Int direction, out Vector2Int destination)
+    {
+        if (fromCell.y == TeleporterRow)
+        {
+            if (fromCell.x == 0 && direction == new Vector2Int(-1, 0))
+            {
+                destination = new Vector2Int(columns - 1, TeleporterRow);
+                return true;
+            }
+
+            if (fromCell.x == columns - 1 && direction == new Vector2Int(1, 0))
+            {
+                destination = new Vector2Int(0, TeleporterRow);
+                return true;
+            }
+        }
+
+        destination = default;
+        return false;
     }
 
     private void Start()
@@ -124,6 +182,7 @@ public class LevelGenerator : MonoBehaviour
         columns = quarterColumns * 2;
 
         map = new int[rows, columns];
+        pelletEaten = new bool[rows, columns];
         for (int r = 0; r < rows; r++)
         {
             int sourceRow = r < quarterRows ? r : rows - 1 - r;
@@ -279,6 +338,13 @@ public class LevelGenerator : MonoBehaviour
         SpriteMask levelMask = maskObject.AddComponent<SpriteMask>();
         levelMask.sprite = floor;
 
+        Vector2Int dogStartCell = new Vector2Int(-1, -1);
+        PacStudentController dog = FindAnyObjectByType<PacStudentController>();
+        if (dog != null)
+        {
+            dogStartCell = WorldToCell(dog.transform.position);
+        }
+
         for (int r = 0; r < rows; r++)
         {
             for (int c = 0; c < columns; c++)
@@ -288,16 +354,43 @@ public class LevelGenerator : MonoBehaviour
 
                 if (type == 5)
                 {
-                    PlacePiece(pellet, position, 0f, 1, pellets, r, c);
+                    if (r == dogStartCell.y && c == dogStartCell.x)
+                    {
+                        pelletEaten[r, c] = true;
+                    }
+                    else
+                    {
+                        GameObject pelletPiece = PlacePiece(pellet, position, 0f, 1, pellets, r, c);
+                        BoxCollider2D pelletCollider = pelletPiece.AddComponent<BoxCollider2D>();
+                        pelletCollider.isTrigger = true;
+                        Pellet pelletMarker = pelletPiece.AddComponent<Pellet>();
+                        pelletMarker.Row = r;
+                        pelletMarker.Column = c;
+                    }
                 }
                 else if (type == 6)
                 {
                     GameObject power = Instantiate(powerPelletPrefab, position, Quaternion.identity, pellets);
                     power.name = "PowerPellet_" + r + "_" + c;
+                    PowerPellet powerMarker = power.AddComponent<PowerPellet>();
+                    powerMarker.Row = r;
+                    powerMarker.Column = c;
                 }
                 else if (IsWall(r, c))
                 {
                     PlacePiece(SpriteFor(type), position, RotationFor(type, links[r, c]), 0, walls, r, c);
+                }
+            }
+        }
+
+        pelletsRemaining = 0;
+        for (int r = 0; r < rows; r++)
+        {
+            for (int c = 0; c < columns; c++)
+            {
+                if (HasPelletAt(r,c))
+                {
+                    pelletsRemaining++;
                 }
             }
         }
@@ -321,7 +414,7 @@ public class LevelGenerator : MonoBehaviour
         bonusRenderer.sortingOrder = 1;
     }
 
-    private void PlacePiece(Sprite sprite, Vector3 position, float angle, int sortingOrder, Transform parent, int r, int c)
+    private GameObject PlacePiece(Sprite sprite, Vector3 position, float angle, int sortingOrder, Transform parent, int r, int c)
     {
         GameObject piece = Instantiate(tilePrefab, position, Quaternion.Euler(0f, 0f, angle), parent);
         piece.name = sprite.name + "_" + r + "_" + c;
@@ -329,6 +422,8 @@ public class LevelGenerator : MonoBehaviour
         SpriteRenderer spriteRenderer = piece.GetComponent<SpriteRenderer>();
         spriteRenderer.sprite = sprite;
         spriteRenderer.sortingOrder = sortingOrder;
+
+        return piece;
     }
 
     private Sprite SpriteFor(int type)
