@@ -5,12 +5,22 @@ using UnityEngine;
 [RequireComponent(typeof(AudioSource))]
 public class MusicController : MonoBehaviour
 {
+    [Header("Clips")]
     [SerializeField] private AudioClip introMusic;
     [SerializeField] private AudioClip squirrelNormalMusic;
     [SerializeField] private AudioClip squirrelScaredMusic;
+    [SerializeField] private AudioClip squirrelDeadMusic;
+
+    [Header("Volumes (applied when the track starts)")]
+    [SerializeField, Range(0f, 1f)] private float introVolume = 1f;
+    [SerializeField, Range(0f, 1f)] private float normalVolume = 1f;
+    [SerializeField, Range(0f, 1f)] private float scaredVolume = 1f;
+    [SerializeField, Range(0f, 1f)] private float deadVolume = 1f;
 
     private AudioSource introSource;
     private AudioSource loopSource;
+
+    private float masterVolume;
 
     private float normalMusicTime;
 
@@ -18,10 +28,11 @@ public class MusicController : MonoBehaviour
     {
         introSource = GetComponent<AudioSource>();
         introSource.playOnAwake = false;
+        masterVolume = introSource.volume;
 
         loopSource = gameObject.AddComponent<AudioSource>();
         loopSource.playOnAwake = false;
-        loopSource.volume = introSource.volume;
+        loopSource.volume = masterVolume;
         loopSource.outputAudioMixerGroup = introSource.outputAudioMixerGroup;
     }
 
@@ -35,6 +46,7 @@ public class MusicController : MonoBehaviour
 
         introSource.clip = introMusic;
         introSource.loop = false;
+        introSource.volume = masterVolume * introVolume;
         introSource.Play();
     }
 
@@ -51,29 +63,36 @@ public class MusicController : MonoBehaviour
 
     public void PlayScaredMusic()
     {
-        if (squirrelScaredMusic == null || loopSource.clip == squirrelScaredMusic)
-        {
-            return;
-        }
+        PlayLoop(squirrelScaredMusic, 0f, scaredVolume);
+    }
 
-        normalMusicTime = loopSource.time;
-
-        loopSource.clip = squirrelScaredMusic;
-        loopSource.loop = true;
-        loopSource.time = 0f;
-        loopSource.Play();
+    public void PlayDeadMusic()
+    {
+        PlayLoop(squirrelDeadMusic, 0f, deadVolume);
     }
 
     public void PlayNormalMusic()
     {
-        if (squirrelNormalMusic == null || loopSource.clip == squirrelNormalMusic)
+        PlayLoop(squirrelNormalMusic, normalMusicTime, normalVolume);
+    }
+
+    private void PlayLoop(AudioClip clip, float startTime, float trackVolume)
+    {
+        if (clip == null || loopSource.clip == clip)
         {
             return;
         }
 
-        loopSource.clip = squirrelNormalMusic;
+        // Remember where the normal track was before something else takes over.
+        if (loopSource.clip != null && loopSource.clip == squirrelNormalMusic)
+        {
+            normalMusicTime = loopSource.time;
+        }
+
+        loopSource.clip = clip;
         loopSource.loop = true;
-        loopSource.time = normalMusicTime;
+        loopSource.volume = masterVolume * trackVolume;
+        loopSource.time = startTime;
         loopSource.Play();
     }
 }

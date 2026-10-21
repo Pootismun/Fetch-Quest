@@ -61,6 +61,11 @@ public class GameOverManager : MonoBehaviour
             cherryController.enabled = false;
         }
 
+        foreach (GhostController ghost in FindObjectsByType<GhostController>())
+        {
+            ghost.enabled = false;
+        }
+
         if (GhostScaredManager.Instance != null)
         {
             GhostScaredManager.Instance.enabled = false;

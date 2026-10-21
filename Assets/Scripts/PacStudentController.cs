@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -20,10 +21,18 @@ public class PacStudentController : MonoBehaviour
     [SerializeField] private float powerPelletVolume = 1f;
     [SerializeField] private AudioClip cherryClip;
     [SerializeField] private float cherryVolume = 1f;
+    [SerializeField] private AudioClip ghostEatClip;
+    [SerializeField] private float ghostEatVolume = 1f;
+
+    [Header("Death")]
+    [SerializeField] private AudioClip deathClip;
+    [SerializeField] private float deathVolume = 1f;
+    [SerializeField] private float deathDuration = 3f;
 
     [Header("Effects")]
     [SerializeField] private ParticleSystem dustEffect;
     [SerializeField] private ParticleSystem wallBumpEffect;
+    [SerializeField] private ParticleSystem deathEffect;
 
     private static readonly Vector2Int Up = new Vector2Int(0, -1);
     private static readonly Vector2Int Down = new Vector2Int(0, 1);
@@ -37,9 +46,12 @@ public class PacStudentController : MonoBehaviour
     private AudioSource wallBumpAudioSource;
     private AudioSource powerPelletAudioSource;
     private AudioSource cherryAudioSource;
+    private AudioSource ghostEatAudioSource;
+    private AudioSource deathAudioSource;
 
     private Vector2Int currentCell;
     private Vector2Int targetCell;
+    private Vector2Int startCell;
     private bool isMoving;
     private float lerpT;
 
@@ -56,6 +68,9 @@ public class PacStudentController : MonoBehaviour
     private Vector3 teleportCloneTo;
     private bool pendingTeleport;
     private Vector2Int pendingTeleportCell;
+    public float TilesPerSecond => tilesPerSecond;
+    public bool IsDying { get; private set; }
+    private const float DeadClipLength = 1.25f;
 
     private void Awake()
     {
@@ -65,6 +80,8 @@ public class PacStudentController : MonoBehaviour
         wallBumpAudioSource = gameObject.AddComponent<AudioSource>();
         powerPelletAudioSource = gameObject.AddComponent<AudioSource>();
         cherryAudioSource = gameObject.AddComponent<AudioSource>();
+        ghostEatAudioSource = gameObject.AddComponent<AudioSource>();
+        deathAudioSource = gameObject.AddComponent<AudioSource>();
         spriteRenderer = GetComponent<SpriteRenderer>();
 
         if (levelGenerator == null)
@@ -76,6 +93,7 @@ public class PacStudentController : MonoBehaviour
     private void Start()
     {
         animator.enabled = true;
+        animator.SetBool("PreviewCycle", false);
 
         audioSource.playOnAwake = false;
         audioSource.loop = true;
@@ -101,6 +119,16 @@ public class PacStudentController : MonoBehaviour
         cherryAudioSource.loop = false;
         cherryAudioSource.clip = cherryClip;
         cherryAudioSource.volume = cherryVolume;
+
+        ghostEatAudioSource.playOnAwake = false;
+        ghostEatAudioSource.loop = false;
+        ghostEatAudioSource.clip = ghostEatClip;
+        ghostEatAudioSource.volume = ghostEatVolume;
+
+        deathAudioSource.playOnAwake = false;
+        deathAudioSource.loop = false;
+        deathAudioSource.clip = deathClip;
+        deathAudioSource.volume = deathVolume;
     }
 
     private void Initialize()
@@ -118,6 +146,7 @@ public class PacStudentController : MonoBehaviour
         currentCell = levelGenerator.WorldToCell(transform.position);
         transform.position = levelGenerator.CellToWorld(currentCell.y, currentCell.x);
         targetCell = currentCell;
+        startCell = currentCell;
 
         PlayAnimation(Right);
         animator.speed = 0f;
@@ -296,8 +325,6 @@ public class PacStudentController : MonoBehaviour
             wallBumpAudioSource.Play();
         }
     }
-
-
     private void AdvanceMove()
     {
         lerpT += Time.deltaTime * tilesPerSecond;
@@ -351,6 +378,99 @@ public class PacStudentController : MonoBehaviour
         }
     }
 
+    public void Die()
+    {
+        if (IsDying)
+        {
+            return;
+        }
+
+        StartCoroutine(DeathSequence());
+    }
+
+    private IEnumerator DeathSequence()
+    {
+        IsDying = true;
+
+        foreach (GhostController ghost in FindObjectsByType<GhostController>())
+        {
+            ghost.enabled = false;
+        }
+
+        StopMoving();
+        StopAllSounds();
+        lastInput = None;
+        currentInput = None;
+        lastBumpDirection = None;
+        enabled = false;
+
+        if (LivesManager.Instance != null)
+        {
+            LivesManager.Instance.LoseLife();
+        }
+
+        if (deathEffect != null)
+        {
+            deathEffect.transform.position = transform.position;
+            deathEffect.Play();
+        }
+
+        if (deathClip != null)
+        {
+            deathAudioSource.Play();
+        }
+
+        float duration = deathDuration > 0f ? deathDuration : 3f;
+
+        animator.speed = DeadClipLength / duration;
+        playingAnimation = "Dead";
+        animator.Play("Dead");
+
+        yield return new WaitForSeconds(duration);
+
+        deathAudioSource.Stop();
+
+        if (LivesManager.Instance != null && LivesManager.Instance.Lives <= 0)
+        {
+            if (GameOverManager.Instance != null)
+            {
+                GameOverManager.Instance.TriggerGameOver();
+            }
+
+            yield break;
+        }
+
+        if (teleportClone != null)
+        {
+            Destroy(teleportClone);
+            teleportClone = null;
+        }
+
+        pendingTeleport = false;
+        transform.position = levelGenerator.CellToWorld(startCell.y, startCell.x);
+        currentCell = startCell;
+        targetCell = startCell;
+        lerpT = 0f;
+
+        playingAnimation = "";
+        PlayAnimation(Right);
+        animator.speed = 0f;
+
+        foreach (GhostController ghost in FindObjectsByType<GhostController>())
+        {
+            ghost.ResetToStart();
+            ghost.enabled = true;
+        }
+
+        if (GhostScaredManager.Instance != null)
+        {
+            GhostScaredManager.Instance.RefreshMusic();
+        }
+
+        enabled = true;
+        IsDying = false;
+    }
+
     private void OnTriggerEnter2D(Collider2D other)
     {
         if (!enabled)
@@ -391,6 +511,53 @@ public class PacStudentController : MonoBehaviour
             }
 
             Destroy(other.gameObject);
+        }
+        else
+        {
+            HandleGhostContact(other);
+        }
+     }
+
+    private void OnTriggerStay2D(Collider2D other)
+    {
+        if (!enabled)
+        {
+            return;
+        }
+
+        HandleGhostContact(other);
+    }
+
+    private void HandleGhostContact(Collider2D other)
+    {
+        if (!other.TryGetComponent(out GhostStateController ghost))
+        {
+            return;
+        }
+
+        if (ghost.CurrentState == GhostState.Dead)
+        {
+            return;
+        }
+
+        if (!ghost.IsVulnerable)
+        {
+            Die();
+            return;
+        }
+
+        ScoreManager.Instance.AddScore(300);
+
+        if (ghostEatClip != null)
+        {
+            ghostEatAudioSource.Play();
+        }
+
+        ghost.SetState(GhostState.Dead);
+
+        if (GhostScaredManager.Instance != null)
+        {
+            GhostScaredManager.Instance.RefreshMusic();
         }
     }
 
