@@ -15,6 +15,19 @@ public class GhostScaredManager : MonoBehaviour
     private bool scaredActive;
     private bool recoveringTriggered;
 
+    public GhostState GlobalState
+    {
+        get
+        {
+            if (!scaredActive)
+            {
+                return GhostState.Normal;
+            }
+
+            return recoveringTriggered ? GhostState.Recovering : GhostState.Scared;
+        }
+    }
+
     private void Awake()
     {
         Instance = this;
@@ -44,10 +57,7 @@ public class GhostScaredManager : MonoBehaviour
             }
         }
 
-        if (musicController != null)
-        {
-            musicController.PlayScaredMusic();
-        }
+        RefreshMusic();
 
         if (timerText != null)
         {
@@ -84,6 +94,7 @@ public class GhostScaredManager : MonoBehaviour
             EndScared();
             return;
         }
+
         UpdateTimerText();
     }
 
@@ -99,15 +110,46 @@ public class GhostScaredManager : MonoBehaviour
             }
         }
 
-        if (musicController != null)
-        {
-            musicController.PlayNormalMusic();
-        }
+        RefreshMusic();
 
         if (timerText != null)
         {
             timerText.gameObject.SetActive(false);
         }
+    }
+
+    public void RefreshMusic()
+    {
+        if (!enabled || musicController == null)
+        {
+            return;
+        }
+
+        if (AnyGhostDead())
+        {
+            musicController.PlayDeadMusic();
+        }
+        else if (scaredActive)
+        {
+            musicController.PlayScaredMusic();
+        }
+        else
+        {
+            musicController.PlayNormalMusic();
+        }
+    }
+
+    private bool AnyGhostDead()
+    {
+        foreach (GhostStateController ghost in ghosts)
+        {
+            if (ghost.CurrentState == GhostState.Dead)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void UpdateTimerText()

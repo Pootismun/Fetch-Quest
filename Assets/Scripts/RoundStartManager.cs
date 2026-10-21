@@ -11,11 +11,13 @@ public class RoundStartManager : MonoBehaviour
 
     private PacStudentController dog;
     private CherryController cherryController;
+    private GhostController[] ghosts;
 
     private IEnumerator Start()
     {
         dog = FindAnyObjectByType<PacStudentController>();
         cherryController = FindAnyObjectByType<CherryController>();
+        ghosts = FindObjectsByType<GhostController>();
 
         SetGameplayEnabled(false);
 
@@ -65,6 +67,14 @@ public class RoundStartManager : MonoBehaviour
         if (cherryController != null)
         {
             cherryController.enabled = isEnabled;
+        }
+
+        if (ghosts != null)
+        {
+            foreach (GhostController ghost in ghosts)
+            {
+                ghost.enabled = isEnabled;
+            }
         }
     }
 }

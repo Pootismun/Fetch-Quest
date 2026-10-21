@@ -76,6 +76,41 @@ public class LevelGenerator : MonoBehaviour
         return !IsWall(row, column);
     }
 
+    public const int HouseTopRow = 13;
+    public const int HouseBottomRow = 15;
+    public const int HouseLeftColumn = 11;
+    public const int HouseRightColumn = 16;
+    public const int HouseTopDoorRow = 12;
+    public const int HouseBottomDoorRow = 16;
+    public const int HouseDoorLeftColumn = 13;
+    public const int HouseDoorRightColumn = 14;
+
+    public bool IsInsideGhostHouse(int row, int column)
+    {
+        return row >= HouseTopRow && row <= HouseBottomRow && column >= HouseLeftColumn && column <= HouseRightColumn;
+    }
+
+    public bool IsGhostWalkable(int row, int column)
+    {
+        if (!IsWalkable(row, column))
+        {
+            return false;
+        }
+
+        return !IsInsideGhostHouse(row, column);
+    }
+
+    public bool IsOuterWall(int row, int column)
+    {
+        if (row < 0 || row >= rows || column < 0 || column >= columns)
+        {
+            return true;
+        }
+
+        int type = map[row, column];
+        return type == 1 || type == 2 || type == 7;
+    }
+
     public bool HasPelletAt(int row, int column)
     {
         if (row < 0 || row >= rows || column < 0 || column >= columns)
