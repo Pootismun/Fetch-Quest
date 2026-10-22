@@ -8,6 +8,7 @@ public class TextWave : MonoBehaviour
     [SerializeField] private float hopDuration = 0.35f;
     [SerializeField] private float delayPerCharacter = 0.07f;
     [SerializeField] private float restDuration = 0.5f;
+    [SerializeField] private float speed = 1f;
 
     private TMP_Text text;
     private float clock;
@@ -24,6 +25,11 @@ public class TextWave : MonoBehaviour
         clock = 0f;
     }
 
+    public void SetSpeed(float newSpeed)
+    {
+        speed = newSpeed;
+    }
+
     private void LateUpdate()
     {
         text.ForceMeshUpdate();
@@ -31,7 +37,7 @@ public class TextWave : MonoBehaviour
 
         float hopsFinishAt = Mathf.Max(0, info.characterCount - 1) * delayPerCharacter + hopDuration;
         float cycleLength = hopsFinishAt + restDuration;
-        clock += Mathf.Min(Time.unscaledDeltaTime, 0.05f);
+        clock += Mathf.Min(Time.unscaledDeltaTime, 0.05f) * speed;
         float phase = clock % cycleLength;
 
         IsResting = phase >= hopsFinishAt;

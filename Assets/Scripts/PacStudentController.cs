@@ -28,6 +28,8 @@ public class PacStudentController : MonoBehaviour
     [SerializeField] private AudioClip deathClip;
     [SerializeField] private float deathVolume = 1f;
     [SerializeField] private float deathDuration = 3f;
+    [SerializeField] private Sprite deadPoseSprite;
+    [SerializeField] private float finalLifeHoldTime = 1f;
 
     [Header("Effects")]
     [SerializeField] private ParticleSystem dustEffect;
@@ -71,7 +73,9 @@ public class PacStudentController : MonoBehaviour
     private Vector2Int pendingTeleportCell;
     public float TilesPerSecond => tilesPerSecond;
     public bool IsDying { get; private set; }
+    public GhostStateController LastKiller { get; private set; }
     private const float DeadClipLength = 1.25f;
+    private const string FadedDeadSpriteName = "Dog_Dead_4";
 
     private void Awake()
     {
@@ -139,6 +143,39 @@ public class PacStudentController : MonoBehaviour
         animator.SetBool("PreviewCycle", false);
         PlayAnimation(Right);
         animator.speed = 0f;
+    }
+
+    public void ShowDeadPose()
+    {
+        StopMoving();
+        playingAnimation = "Dead";
+        spriteRenderer.sortingOrder = normalSortingOrder - 2;
+
+        if (deadPoseSprite != null)
+        {
+            animator.enabled = false;
+            spriteRenderer.sprite = deadPoseSprite;
+            return;
+        }
+
+        animator.enabled = true;
+        animator.SetBool("PreviewCycle", false);
+        animator.Play("Dead", 0, 1f);
+        animator.speed = 0f;
+    }
+
+    public void ShowVictoryPose()
+    {
+        animator.enabled = true;
+        animator.SetBool("PreviewCycle", false);
+        playingAnimation = "Walk_Down";
+        animator.Play("Walk_Down");
+        animator.speed = 1.6f;
+
+        if (dustEffect != null && dustEffect.isPlaying)
+        {
+            dustEffect.Stop();
+        }
     }
 
     private void Initialize()
@@ -388,6 +425,12 @@ public class PacStudentController : MonoBehaviour
         }
     }
 
+    public void StopMovementSounds()
+    {
+        audioSource.Stop();
+        eatAudioSource.Stop();
+    }
+
     public void Die()
     {
         if (IsDying)
@@ -437,7 +480,42 @@ public class PacStudentController : MonoBehaviour
         animator.Play("Dead");
         spriteRenderer.sortingOrder = normalSortingOrder - 2;
 
-        yield return new WaitForSeconds(duration);
+        bool lastLife = LivesManager.Instance != null && LivesManager.Instance.Lives <= 0;
+
+        if (lastLife)
+        {
+            yield return null;
+
+            AnimatorStateInfo info = animator.GetCurrentAnimatorStateInfo(0);
+            float clipLength = info.length;
+            float progress = info.normalizedTime;
+            float rate = (DeadClipLength / duration) / clipLength;
+            float waited = Time.deltaTime;
+
+            animator.speed = 0f;
+
+            while (waited < duration)
+            {
+                progress += rate * Time.deltaTime;
+                animator.Play("Dead", 0, progress);
+                animator.Update(0f);
+
+                if (spriteRenderer.sprite != null && spriteRenderer.sprite.name == FadedDeadSpriteName)
+                {
+                    break;
+                }
+
+                waited += Time.deltaTime;
+                yield return null;
+            }
+
+            ShowDeadPose();
+            yield return new WaitForSeconds(Mathf.Min(Mathf.Max(0f, duration - waited), finalLifeHoldTime));
+        }
+        else
+        {
+            yield return new WaitForSeconds(duration);
+        }
 
         deathAudioSource.Stop();
 
@@ -554,6 +632,7 @@ public class PacStudentController : MonoBehaviour
 
         if (!ghost.IsVulnerable)
         {
+            LastKiller = ghost;
             Die();
             return;
         }

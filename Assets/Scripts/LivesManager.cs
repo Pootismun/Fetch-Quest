@@ -32,8 +32,6 @@ public class LivesManager : MonoBehaviour
         }
     }
 
-    
-
 [ContextMenu("Test Lose Life")]
     private void TestLoseLife()
     {
