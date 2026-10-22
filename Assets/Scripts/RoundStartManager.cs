@@ -21,6 +21,11 @@ public class RoundStartManager : MonoBehaviour
 
         SetGameplayEnabled(false);
 
+        while (SceneLoader.IsTransitioning)
+        {
+            yield return null;
+        }
+
         blockingImage.SetActive(true);
         countdownText.gameObject.SetActive(true);
         countdownText.text = "3";
