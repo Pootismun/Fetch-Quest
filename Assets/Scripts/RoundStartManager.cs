@@ -10,6 +10,7 @@ public class RoundStartManager : MonoBehaviour
     [SerializeField] private MusicController musicController;
     [SerializeField] private float stepDuration = 1f;
     [SerializeField] private float introDuration = 5f;
+    [SerializeField] private float backdropFadeTime = 0.6f;
 
     private PacStudentController dog;
     private CherryController cherryController;
@@ -22,6 +23,14 @@ public class RoundStartManager : MonoBehaviour
         ghosts = FindObjectsByType<GhostController>();
 
         SetGameplayEnabled(false);
+
+        if (dog != null)
+        {
+            dog.ShowStartPose();
+        }
+
+        SetGhostAnimationPaused(true);
+
         countdownText.text = "";
 
         while (SceneLoader.IsTransitioning)
@@ -50,7 +59,7 @@ public class RoundStartManager : MonoBehaviour
         }
 
         countdownText.gameObject.SetActive(false);
-        blockingImage.SetActive(false);
+        StartCoroutine(countdownAnimator.FadeOutBackdrop(backdropFadeTime));
 
         if (musicController != null)
         {
@@ -58,11 +67,21 @@ public class RoundStartManager : MonoBehaviour
             musicController.PlayNormalMusic();
         }
 
+        SetGhostAnimationPaused(false);
+
         SetGameplayEnabled(true);
 
         if (GameTimer.Instance != null)
         {
             GameTimer.Instance.StartTimer();
+        }
+    }
+
+    private void SetGhostAnimationPaused(bool paused)
+    {
+        foreach (GhostStateController ghost in FindObjectsByType<GhostStateController>())
+        {
+            ghost.SetAnimationPaused(paused);
         }
     }
 

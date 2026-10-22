@@ -1,7 +1,6 @@
 using System.Collections;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Audio;
 using UnityEngine.UI;
 
 public class CountdownAnimator : MonoBehaviour
@@ -130,6 +129,30 @@ public class CountdownAnimator : MonoBehaviour
         {
             goWave.enabled = false;
         }
+    }
+
+    public IEnumerator FadeOutBackdrop(float duration)
+    {
+        if (backdrop == null)
+        {
+            yield break;
+        }
+
+        float time = 0f;
+
+        while (time < duration)
+        {
+            time += Mathf.Min(Time.unscaledDeltaTime, 0.05f);
+
+            Color current = backdrop.color;
+            current.a = 1f - Mathf.Clamp01(time / duration);
+            backdrop.color = current;
+
+            yield return null;
+        }
+
+        backdrop.gameObject.SetActive(false);
+        backdrop.color = Color.black;
     }
 
     [ContextMenu("Preview Countdown")]

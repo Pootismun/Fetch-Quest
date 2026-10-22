@@ -25,9 +25,16 @@ public class LivesManager : MonoBehaviour
 
         lives--;
         lifeIcons[lives].SetActive(false);
+
+        if (DamageFeedback.Instance != null)
+        {
+            DamageFeedback.Instance.Play();
+        }
     }
 
-    [ContextMenu("Test Lose Life")]
+    
+
+[ContextMenu("Test Lose Life")]
     private void TestLoseLife()
     {
         LoseLife();

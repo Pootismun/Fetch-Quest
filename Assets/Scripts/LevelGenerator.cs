@@ -609,7 +609,7 @@ public class LevelGenerator : MonoBehaviour
         levelCamera.transform.position = new Vector3(0f, 0f, -10f);
 
         const float verticalMargin = 2f;
-        const float hudColumnRefWidth = 440f;
+        const float hudColumnRefWidth = 364f;
         const float refWidth = 1920f;
         const float refHeight = 1080f;
         const float match = 0.5f;

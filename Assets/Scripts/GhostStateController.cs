@@ -13,7 +13,7 @@ public class GhostStateController : MonoBehaviour
 {
     private Animator animator;
     private GhostState currentState = GhostState.Normal;
-    private Vector2Int facing = new Vector2Int(0, -1);
+    private Vector2Int facing = new Vector2Int(0, 1);
 
     public GhostState CurrentState => currentState;
     public bool IsVulnerable => currentState == GhostState.Scared || currentState == GhostState.Recovering;
@@ -26,6 +26,11 @@ public class GhostStateController : MonoBehaviour
     private void Start()
     {
         SetState(GhostState.Normal);
+    }
+
+    public void SetAnimationPaused(bool paused)
+    {
+        animator.speed = paused ? 0f : 1f;
     }
 
     public void SetState(GhostState newState)

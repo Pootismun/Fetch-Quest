@@ -41,6 +41,7 @@ public class PacStudentController : MonoBehaviour
     private static readonly Vector2Int None = Vector2Int.zero;
 
     private Animator animator;
+    private int normalSortingOrder;
     private AudioSource audioSource;
     private AudioSource eatAudioSource;
     private AudioSource wallBumpAudioSource;
@@ -83,6 +84,7 @@ public class PacStudentController : MonoBehaviour
         ghostEatAudioSource = gameObject.AddComponent<AudioSource>();
         deathAudioSource = gameObject.AddComponent<AudioSource>();
         spriteRenderer = GetComponent<SpriteRenderer>();
+        normalSortingOrder = spriteRenderer.sortingOrder;
 
         if (levelGenerator == null)
         {
@@ -129,6 +131,14 @@ public class PacStudentController : MonoBehaviour
         deathAudioSource.loop = false;
         deathAudioSource.clip = deathClip;
         deathAudioSource.volume = deathVolume;
+    }
+
+    public void ShowStartPose()
+    {
+        animator.enabled = true;
+        animator.SetBool("PreviewCycle", false);
+        PlayAnimation(Right);
+        animator.speed = 0f;
     }
 
     private void Initialize()
@@ -425,6 +435,7 @@ public class PacStudentController : MonoBehaviour
         animator.speed = DeadClipLength / duration;
         playingAnimation = "Dead";
         animator.Play("Dead");
+        spriteRenderer.sortingOrder = normalSortingOrder - 2;
 
         yield return new WaitForSeconds(duration);
 
@@ -455,6 +466,7 @@ public class PacStudentController : MonoBehaviour
         playingAnimation = "";
         PlayAnimation(Right);
         animator.speed = 0f;
+        spriteRenderer.sortingOrder = normalSortingOrder;
 
         foreach (GhostController ghost in FindObjectsByType<GhostController>())
         {

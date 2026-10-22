@@ -14,6 +14,7 @@ public class GhostScaredManager : MonoBehaviour
     private float timeRemaining;
     private bool scaredActive;
     private bool recoveringTriggered;
+    private PopInOnEnable timerPop;
 
     public GhostState GlobalState
     {
@@ -59,10 +60,7 @@ public class GhostScaredManager : MonoBehaviour
 
         RefreshMusic();
 
-        if (timerText != null)
-        {
-            timerText.gameObject.SetActive(true);
-        }
+        ShowTimer();
 
         UpdateTimerText();
     }
@@ -112,10 +110,7 @@ public class GhostScaredManager : MonoBehaviour
 
         RefreshMusic();
 
-        if (timerText != null)
-        {
-            timerText.gameObject.SetActive(false);
-        }
+        HideTimer();
     }
 
     public void RefreshMusic()
@@ -152,11 +147,55 @@ public class GhostScaredManager : MonoBehaviour
         return false;
     }
 
+    private void ShowTimer()
+    {
+        if (timerText == null)
+        {
+            return;
+        }
+
+        if (timerPop == null)
+        {
+            timerPop = timerText.GetComponent<PopInOnEnable>();
+        }
+
+        if (timerPop != null)
+        {
+            timerPop.Show();
+        }
+        else
+        {
+            timerText.gameObject.SetActive(true);
+        }
+    }
+
+    private void HideTimer()
+    {
+        if (timerText == null)
+        {
+            return;
+        }
+
+        if (timerPop == null)
+        {
+            timerPop = timerText.GetComponent<PopInOnEnable>();
+        }
+
+        if (timerPop != null)
+        {
+            timerPop.Hide();
+        }
+        else
+        {
+            timerText.gameObject.SetActive(false);
+        }
+    }
+
     private void UpdateTimerText()
     {
         if (timerText != null)
         {
-            timerText.text = "SCARED: " + Mathf.CeilToInt(timeRemaining).ToString();
+            timerText.text = Mathf.CeilToInt(timeRemaining).ToString();
         }
     }
 }
