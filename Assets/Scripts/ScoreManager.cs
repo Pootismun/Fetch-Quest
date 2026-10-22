@@ -29,7 +29,7 @@ public class ScoreManager : MonoBehaviour
     {
         if (scoreText != null)
         {
-            scoreText.text = "SCORE: " + score.ToString("D6");
+            scoreText.text = score.ToString("D6");
         }
     }
 }
