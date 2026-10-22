@@ -14,7 +14,6 @@ public class GameOverManager : MonoBehaviour
     [SerializeField] private GameObject blockingImage;
     [SerializeField] private GameObject gameOverText;
     [SerializeField] private float returnDelay = 3f;
-    [SerializeField] private string startSceneName = "StartScene";
 
     private bool isGameOver;
 
@@ -91,7 +90,7 @@ public class GameOverManager : MonoBehaviour
 
         yield return new WaitForSecondsRealtime(returnDelay);
 
-        SceneManager.LoadScene(startSceneName);
+        SceneLoader.Load("StartScene");
     }
 
     private void SaveHighScore()

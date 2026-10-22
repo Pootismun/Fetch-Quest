@@ -25,6 +25,6 @@ public class MainMenuController : MonoBehaviour
     private IEnumerator LoadAfterDelay(string sceneName)
     {
         yield return new WaitForSecondsRealtime(loadDelay);
-        SceneManager.LoadScene(sceneName);
+        SceneLoader.Load(sceneName);
     }
 }
