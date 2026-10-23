@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 7427e9a80652fff4d8c89c436f62fbfb
+guid: 2d8da1d186b4e4742bfb9201743ba0e9
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 7390256443274236391
-    second: LoadingScreen_0
+      213: 4989710963772884314
+    second: LoadingScreen 1_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -53,7 +53,7 @@ TextureImporter:
   spritePivot: {x: 0.5, y: 0.5}
   spritePixelsToUnits: 100
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
-  spriteGenerateFallbackPhysicsShape: 0
+  spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
   alphaIsTransparency: 1
   spriteTessellationDetail: -1
@@ -100,7 +100,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: LoadingScreen_0
+      name: LoadingScreen 1_0
       rect:
         serializedVersion: 2
         x: 0
@@ -115,8 +115,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 7e1176474177f8660800000000000000
-      internalID: 7390256443274236391
+      spriteID: a550e875fa30f3540800000000000000
+      internalID: 4989710963772884314
       vertices: []
       indices: 
       edges: []
@@ -135,7 +135,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      LoadingScreen_0: 7390256443274236391
+      LoadingScreen 1_0: 4989710963772884314
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

@@ -210,7 +210,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 140}
+  m_AnchoredPosition: {x: 585, y: 375}
   m_SizeDelta: {x: 500, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &174481098
@@ -242,8 +242,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4285229935
-  m_fontColor: {r: 0.4339623, g: 0.41840515, b: 0.41840515, a: 1}
+    rgba: 4280432214
+  m_fontColor: {r: 0.3372549, g: 0.21176471, b: 0.13333334, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -329,10 +329,7 @@ MonoBehaviour:
   hopDuration: 0.5
   delayPerCharacter: 0.06
   restDuration: 0.3
-  tickClip: {fileID: 8300000, guid: 7ad66c086a2159d43999ec90632723ba, type: 3}
-  tickVolume: 1
-  lowPitch: 0.8
-  highPitch: 1.6
+  speed: 1
 --- !u!1 &557341701
 GameObject:
   m_ObjectHideFlags: 0
@@ -390,7 +387,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 7427e9a80652fff4d8c89c436f62fbfb, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 2d8da1d186b4e4742bfb9201743ba0e9, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -548,8 +545,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 140}
-  m_SizeDelta: {x: 700, y: 250}
+  m_AnchoredPosition: {x: 575, y: 375}
+  m_SizeDelta: {x: 700, y: 252}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1129738508
 MonoBehaviour:
@@ -571,8 +568,8 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 44a52368bbbc8c441bba8bd67222c5be, type: 3}
-  m_Type: 1
+  m_Sprite: {fileID: 8907617652288408858, guid: ae58d5120a94fc74f9ed0e57e3b7a301, type: 3}
+  m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -846,7 +843,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f0ad81003956a4b43b3d438f1509c2e3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LoadingTileGrid
-  image: {fileID: 21300000, guid: 7427e9a80652fff4d8c89c436f62fbfb, type: 3}
+  image: {fileID: 21300000, guid: 2d8da1d186b4e4742bfb9201743ba0e9, type: 3}
   columns: 16
   rows: 9
 --- !u!1660057539 &9223372036854775807

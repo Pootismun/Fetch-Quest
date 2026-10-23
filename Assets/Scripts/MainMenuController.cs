@@ -22,6 +22,23 @@ public class MainMenuController : MonoBehaviour
     {
         StartCoroutine(LoadAfterDelay("StartScene"));
     }
+
+    public void OnQuitClicked()
+    {
+        StartCoroutine(QuitAfterDelay());
+    }
+
+    private IEnumerator QuitAfterDelay()
+    {
+        yield return new WaitForSecondsRealtime(loadDelay);
+
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#else
+        Application.Quit();
+#endif
+    }
+
     private IEnumerator LoadAfterDelay(string sceneName)
     {
         yield return new WaitForSecondsRealtime(loadDelay);

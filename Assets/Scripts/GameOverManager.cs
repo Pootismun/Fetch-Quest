@@ -1,3 +1,4 @@
+using UnityEngine.SceneManagement;
 using TMPro;
 using System.Collections;
 using UnityEngine;
@@ -8,6 +9,16 @@ public class GameOverManager : MonoBehaviour
 
     public const string HighScoreKey = "HighScore";
     public const string HighScoreTimeKey = "HighScoreTime";
+
+    public static string ScoreKeyFor(string sceneName)
+    {
+        return HighScoreKey + "_" + sceneName;
+    }
+
+    public static string TimeKeyFor(string sceneName)
+    {
+        return HighScoreTimeKey + "_" + sceneName;
+    }
 
     [SerializeField] private LevelGenerator levelGenerator;
     [SerializeField] private GameObject blockingImage;
@@ -181,21 +192,25 @@ public class GameOverManager : MonoBehaviour
         int currentScore = ScoreManager.Instance.Score;
         float currentTime = GameTimer.Instance.ElapsedSeconds;
 
+        string sceneName = SceneManager.GetActiveScene().name;
+        string scoreKey = ScoreKeyFor(sceneName);
+        string timeKey = TimeKeyFor(sceneName);
+
         if (currentScore <= 0)
         {
             return false;
         }
 
-        int previousScore = PlayerPrefs.GetInt(HighScoreKey, 0);
-        float previousTime = PlayerPrefs.GetFloat(HighScoreTimeKey, float.MaxValue);
+        int previousScore = PlayerPrefs.GetInt(scoreKey, 0);
+        float previousTime = PlayerPrefs.GetFloat(timeKey, float.MaxValue);
 
         bool beatenScore = currentScore > previousScore;
         bool sameScoreFaster = currentScore == previousScore && currentTime < previousTime;
 
         if (beatenScore || sameScoreFaster)
         {
-            PlayerPrefs.SetInt(HighScoreKey, currentScore);
-            PlayerPrefs.SetFloat(HighScoreTimeKey, currentTime);
+            PlayerPrefs.SetInt(scoreKey, currentScore);
+            PlayerPrefs.SetFloat(timeKey, currentTime);
             PlayerPrefs.Save();
             return true;
         }
