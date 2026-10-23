@@ -142,7 +142,7 @@ public class LoadingScreenController : MonoBehaviour
     {
         RectTransform rect = loadingLabel.GetComponent<RectTransform>();
         Vector2 shownPosition = Vector2.zero;
-        Vector2 hiddenPosition = new Vector2(0f, -400f);
+        Vector2 hiddenPosition = new Vector2(0f, 450f);
 
         loadingLabel.SetActive(true);
         PlaySfx(show ? boingInClip : (boingOutClip != null ? boingOutClip : boingInClip), boingVolume);

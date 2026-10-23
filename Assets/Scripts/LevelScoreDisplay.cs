@@ -15,7 +15,7 @@ public class LevelScoreDisplay : MonoBehaviour
         if (!PlayerPrefs.HasKey(scoreKey))
         {
             scoreText.text = "000000";
-            timeText.text = "--:--:--";
+            timeText.text = "00:00:00";
             return;
         }
 

@@ -121,6 +121,16 @@ public class OptionsMenu : MonoBehaviour
         return 1f + c3 * Mathf.Pow(t - 1f, 3f) + c1 * Mathf.Pow(t - 1f, 2f);
     }
 
+    public void SetShape169()
+    {
+        SetShape(0);
+    }
+
+    public void SetShape43()
+    {
+        SetShape(1);
+    }
+
     private void SetShape(int shape)
     {
         PlayerPrefs.SetInt(ScreenShapeKey, shape);
@@ -149,11 +159,10 @@ public class OptionsMenu : MonoBehaviour
 
     private void ApplyShape(int shape)
     {
-#if UNITY_EDITOR
-        Debug.Log("Screen shape only changes in a built game (windowed height " + windowedHeight + "). In the editor, use the Game view aspect dropdown to test 16:9 and 4:3.");
-#else
         int height = windowedHeight;
         int width = shape == 0 ? Mathf.RoundToInt(height * 16f / 9f) : Mathf.RoundToInt(height * 4f / 3f);
+
+#if !UNITY_EDITOR
         Screen.SetResolution(width, height, FullScreenMode.Windowed);
 #endif
     }
