@@ -645,7 +645,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 16:9
+  m_text: FULLSCREEN
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 64d360ea35df214478711d490247d646, type: 2}
   m_sharedMaterial: {fileID: 1449377724892020660, guid: 64d360ea35df214478711d490247d646, type: 2}
@@ -1064,7 +1064,8 @@ MonoBehaviour:
   shape43Image: {fileID: 1074181946}
   selectedColor: {r: 1, g: 1, b: 1, a: 1}
   unselectedColor: {r: 0.7, g: 0.7, b: 0.7, a: 1}
-  windowedHeight: 720
+  windowedWidth: 1760
+  windowedHeight: 990
   panelGroup: {fileID: 2049771525}
   card: {fileID: 1686201050}
   openTime: 0.35
@@ -2298,7 +2299,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 4:3
+  m_text: WINDOWED
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 64d360ea35df214478711d490247d646, type: 2}
   m_sharedMaterial: {fileID: 1449377724892020660, guid: 64d360ea35df214478711d490247d646, type: 2}
@@ -4444,7 +4445,7 @@ GameObject:
   - component: {fileID: 1074181947}
   - component: {fileID: 1074181952}
   m_Layer: 5
-  m_Name: Shape43Button
+  m_Name: WindowedButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4635,7 +4636,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 173638882}
         m_TargetAssemblyTypeName: OptionsMenu, Assembly-CSharp
-        m_MethodName: SetShape43
+        m_MethodName: SetWindowed
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -7941,7 +7942,7 @@ GameObject:
   - component: {fileID: 1879317716}
   - component: {fileID: 1879317721}
   m_Layer: 5
-  m_Name: Shape169Button
+  m_Name: FullscreenButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -8122,7 +8123,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 173638882}
         m_TargetAssemblyTypeName: OptionsMenu, Assembly-CSharp
-        m_MethodName: SetShape169
+        m_MethodName: SetFullscreen
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -8243,7 +8244,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: ASPECT RATIO
+  m_text: DISPLAY TYPE
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 64d360ea35df214478711d490247d646, type: 2}
   m_sharedMaterial: {fileID: 1449377724892020660, guid: 64d360ea35df214478711d490247d646, type: 2}

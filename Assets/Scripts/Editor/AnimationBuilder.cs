@@ -4,19 +4,19 @@ using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
 
-//Editor tool to build eand control every animation clip.
+//Editor tool to build eand control every animation clip
 public static class AnimationBuilder
 {
     private const string SpriteRoot = "Assets/Sprites";
     private const string ClipRoot = "Assets/Animations/Clips";
     private const string ControllerRoot = "Assets/Animations/Controllers";
 
-    // Setting sprite animation timings.
+    // Setting sprite animation timings
     private const float FrameTime = 0.25f;
     private const float LoopExitTime = 4f;
     private const float OneShotExitTime = 1f;
 
-    // Lets states cycle on their own so every animation can be previewed.
+    // Lets states cycle on their own so every animation can be previewed
     private const string PreviewParameter = "PreviewCycle";
 
     private static readonly string[] Directions = { "Up", "Right", "Down", "Left" };
@@ -79,7 +79,7 @@ public static class AnimationBuilder
         BuildController("PowerPelletAnimator", new List<StateInfo> { new StateInfo("Flash", flash, true) });
     }
 
-    //Squirrels
+    // Squirrels
     private static void BuildSquirrels()
     {
         var greyWalk = new Dictionary<string, AnimationClip>();

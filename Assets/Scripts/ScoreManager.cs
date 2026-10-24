@@ -1,6 +1,5 @@
 using UnityEngine;
 using TMPro;
-using Unity.VisualScripting;
 public class ScoreManager : MonoBehaviour
 {
     public static ScoreManager Instance { get; private set; }

@@ -6,15 +6,17 @@ using System.Collections;
 public class OptionsMenu : MonoBehaviour
 {
     private const string VolumeKey = "MasterVolume";
-    private const string ScreenShapeKey = "ScreenShape";
 
     [SerializeField] private GameObject panel;
     [SerializeField] private Slider volumeSlider;
     [SerializeField] private TMP_Text volumeValueText;
+    // No longer accurate, this is the fullscreen image now.
     [SerializeField] private Image shape169Image;
+    // No longer accurate, this is the windowed image now.
     [SerializeField] private Image shape43Image;
     [SerializeField] private Color selectedColor = Color.white;
     [SerializeField] private Color unselectedColor = new Color(0.7f, 0.7f, 0.7f, 1f);
+    [SerializeField] private int windowedWidth = 1280;
     [SerializeField] private int windowedHeight = 720;
     [SerializeField] private CanvasGroup panelGroup;
     [SerializeField] private RectTransform card;
@@ -30,13 +32,14 @@ public class OptionsMenu : MonoBehaviour
         ApplyVolume(volume);
         volumeSlider.onValueChanged.AddListener(OnVolumeChanged);
 
-        int shape = PlayerPrefs.GetInt(ScreenShapeKey, 0);
-        ShowShape(shape);
+        ShowMode(Screen.fullScreen);
 
-        if (PlayerPrefs.HasKey(ScreenShapeKey))
+#if !UNITY_EDITOR
+        if (Screen.fullScreen)
         {
-            ApplyShape(shape);
+            ApplyMode(true);
         }
+#endif
 
         panel.SetActive(false);
     }
@@ -121,22 +124,14 @@ public class OptionsMenu : MonoBehaviour
         return 1f + c3 * Mathf.Pow(t - 1f, 3f) + c1 * Mathf.Pow(t - 1f, 2f);
     }
 
-    public void SetShape169()
+    public void SetFullscreen()
     {
-        SetShape(0);
+        ApplyMode(true);
     }
 
-    public void SetShape43()
+    public void SetWindowed()
     {
-        SetShape(1);
-    }
-
-    private void SetShape(int shape)
-    {
-        PlayerPrefs.SetInt(ScreenShapeKey, shape);
-        PlayerPrefs.Save();
-        ShowShape(shape);
-        ApplyShape(shape);
+        ApplyMode(false);
     }
 
     private void OnVolumeChanged(float value)
@@ -151,19 +146,30 @@ public class OptionsMenu : MonoBehaviour
         volumeValueText.text = Mathf.RoundToInt(value * 100f) + "%";
     }
 
-    private void ShowShape(int shape)
+    private void ShowMode(bool fullscreen)
     {
-        shape169Image.color = shape == 0 ? selectedColor : unselectedColor;
-        shape43Image.color = shape == 1 ? selectedColor : unselectedColor;
+        shape169Image.color = fullscreen ? selectedColor : unselectedColor;
+        shape43Image.color = fullscreen ? unselectedColor : selectedColor;
     }
 
-    private void ApplyShape(int shape)
+    private void ApplyMode(bool fullscreen)
     {
+        ShowMode(fullscreen);
+
+        int width = windowedWidth;
         int height = windowedHeight;
-        int width = shape == 0 ? Mathf.RoundToInt(height * 16f / 9f) : Mathf.RoundToInt(height * 4f / 3f);
+
 
 #if !UNITY_EDITOR
-        Screen.SetResolution(width, height, FullScreenMode.Windowed);
+        if (fullscreen)
+        {
+            DisplayInfo display = Screen.mainWindowDisplayInfo;
+            Screen.SetResolution(display.width, display.height, FullScreenMode.FullScreenWindow);
+        }
+        else
+        {
+            Screen.SetResolution(width, height, FullScreenMode.Windowed);
+        }
 #endif
     }
 }

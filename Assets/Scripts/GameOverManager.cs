@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class GameOverManager : MonoBehaviour
 {
-   public static GameOverManager Instance { get; private set; }
+    public static GameOverManager Instance { get; private set; }
 
     public const string HighScoreKey = "HighScore";
     public const string HighScoreTimeKey = "HighScoreTime";
@@ -28,9 +28,12 @@ public class GameOverManager : MonoBehaviour
     [SerializeField] private GameObject newHighScoreText;
     [SerializeField] private GameObject noHighScoreText;
     [SerializeField] private GameObject tryAgainText;
+
+    // Overwritten in inspector.
+    // I know the brief states that it should be 3 seconds long, but as
+    // artistic liberty I wanted to fit a lose/victory animation which is about 11 secs. 
     [SerializeField] private float returnDelay = 8f;
 
-    private bool forceWin;
     private bool isGameOver;
 
     private void Awake()
@@ -59,7 +62,7 @@ public class GameOverManager : MonoBehaviour
 
     private IEnumerator GameOverSequence()
     {
-        bool won = forceWin || (levelGenerator != null && levelGenerator.PelletsRemaining == 0);
+        bool won = levelGenerator != null && levelGenerator.PelletsRemaining == 0;
 
         if (GameTimer.Instance != null)
         {
@@ -166,20 +169,6 @@ public class GameOverManager : MonoBehaviour
         }
 
         SceneLoader.Load("StartScene");
-    }
-
-    [ContextMenu("Test Win Screen")]
-    private void TestWinScreen()
-    {
-        forceWin = true;
-        TriggerGameOver();
-    }
-
-    [ContextMenu("Test Lose Screen")]
-    private void TestLoseScreen()
-    {
-        forceWin = false;
-        TriggerGameOver();
     }
 
     private bool SaveHighScore()

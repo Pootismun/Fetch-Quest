@@ -32,18 +32,6 @@ public class TileWipe : MonoBehaviour
         yield return Run(false);
     }
 
-    [ContextMenu("Test Cover")]
-    private void TestCover()
-    {
-        StartCoroutine(Cover());
-    }
-
-    [ContextMenu("Test Reveal")]
-    private void TestReveal()
-    {
-        StartCoroutine(Reveal());
-    }
-
     private IEnumerator Run(bool covering)
     {
         int rows = grid.Rows;

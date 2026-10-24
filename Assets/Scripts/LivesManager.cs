@@ -31,10 +31,4 @@ public class LivesManager : MonoBehaviour
             DamageFeedback.Instance.Play();
         }
     }
-
-[ContextMenu("Test Lose Life")]
-    private void TestLoseLife()
-    {
-        LoseLife();
-    }
 }

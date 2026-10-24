@@ -161,6 +161,7 @@ public class CountdownAnimator : MonoBehaviour
         StartCoroutine(PreviewRoutine());
     }
 
+    // Took my own artistic liberty to fit the themeing more instead of "GO!"
     private IEnumerator PreviewRoutine()
     {
         string[] labels = { "3", "2", "1", "EAT!" };

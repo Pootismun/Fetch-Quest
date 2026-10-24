@@ -28,7 +28,7 @@ public class EndScreenEffects : MonoBehaviour
     [SerializeField] private float dogLeapAcceleration = 45f;
     [SerializeField] private float dogLeapSpin = 540f;
 
-    [Header("Victory: Dog Mascot")]
+    [Header("Victory: Dog Mascot (On Screen)")]
     [SerializeField] private RectTransform victoryDog;
     [SerializeField] private float mascotDelay = 1.5f;
     [SerializeField] private float mascotDropDistance = 700f;
