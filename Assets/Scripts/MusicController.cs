@@ -40,7 +40,7 @@ public class MusicController : MonoBehaviour
     {
         if (introMusic == null)
         {
-            Debug.LogError("For MusicController, check that both music clips are assigned in the inspector!!!", this);
+            Debug.LogError("MusicController error, check that both music clips are assigned in the inspector!!!", this);
             return;
         }
 

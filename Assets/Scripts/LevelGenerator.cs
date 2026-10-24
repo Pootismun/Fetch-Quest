@@ -228,23 +228,41 @@ public class LevelGenerator : MonoBehaviour
 
         map = new int[rows, columns];
         pelletEaten = new bool[rows, columns];
+
+
+        int[,] bottomSource = bottomMap != null ? bottomMap : levelMap;
+
         for (int r = 0; r < rows; r++)
         {
+            int[,] source = r < quarterRows ? levelMap : bottomSource;
             int sourceRow = r < quarterRows ? r : rows - 1 - r;
             for (int c = 0; c < columns; c++)
             {
                 int sourceColumn = c < quarterColumns ? c : columns - 1 - c;
-                map[r, c] = levelMap[sourceRow, sourceColumn];
+                map[r, c] = source[sourceRow, sourceColumn];
             }
         }
     }
 
     private System.Random rng;
+    private int[,] bottomMap;
+    private int[,] target;
 
     private void GenerateRandomLayout()
     {
         rng = seed == 0 ? new System.Random() : new System.Random(seed);
 
+        target = levelMap;
+        RandomiseZones();
+
+        // The bottom half gets its own layout, so it is not a mirror of the top.
+        bottomMap = (int[,])levelMap.Clone();
+        target = bottomMap;
+        RandomiseZones();
+    }
+
+    private void RandomiseZones()
+    { 
         // Top area: rows 2-4, columns 2-11.
         ClearToPellets(2, 2, 4, 11);
         FillRegion(2, 2, 4, 11);
@@ -258,7 +276,17 @@ public class LevelGenerator : MonoBehaviour
 
     private void PlaceRandomPowerPellet()
     {
-        levelMap[3, 1] = 5;
+        // Remove any power pellet already in this half, then pick a new spot.
+        for (int r = 1; r <= 8; r++)
+        {
+            for (int c = 1; c <= 12; c++)
+            {
+                if (target[r, c] == 6)
+                {
+                    target[r, c] = 5;
+                }
+            }
+        }
 
         System.Collections.Generic.List<Vector2Int> options = new System.Collections.Generic.List<Vector2Int>();
 
@@ -266,7 +294,7 @@ public class LevelGenerator : MonoBehaviour
         {
             for (int c = 1; c <= 12; c++)
             {
-                if (levelMap[r, c] == 5 && !(r == 1 && c == 1))
+                if (target[r, c] == 5 && !(r == 1 && c == 1))
                 {
                     options.Add(new Vector2Int(c, r));
                 }
@@ -274,7 +302,7 @@ public class LevelGenerator : MonoBehaviour
         }
 
         Vector2Int chosen = options[rng.Next(options.Count)];
-        levelMap[chosen.y, chosen.x] = 6;
+        target[chosen.y, chosen.x] = 6;
     }
 
     private void ClearToPellets(int top, int left, int bottom, int right)
@@ -283,7 +311,7 @@ public class LevelGenerator : MonoBehaviour
         {
             for (int c = left; c <= right; c++)
             {
-                levelMap[r, c] = 5;
+                target[r, c] = 5;
             }
         }
     }
@@ -313,15 +341,15 @@ public class LevelGenerator : MonoBehaviour
 
                 if (edgeRow && edgeColumn)
                 {
-                    levelMap[r, c] = 3;
+                    target[r, c] = 3;
                 }
                 else if (edgeRow || edgeColumn)
                 {
-                    levelMap[r, c] = 4;
+                    target[r, c] = 4;
                 }
                 else
                 {
-                    levelMap[r, c] = 0;
+                    target[r, c] = 0;
                 }
             }
         }
@@ -347,6 +375,7 @@ public class LevelGenerator : MonoBehaviour
                 }
             }
         }
+
         // Corner & Junction Calculation
         bool progress = true;
         while (progress)
@@ -385,7 +414,7 @@ public class LevelGenerator : MonoBehaviour
             }
         }
 
-        // Removes odd map pieces
+        // Removes out of place map pieces
         for (int r = 0; r < rows; r++)
         {
             for (int c = 0; c < columns; c++)
@@ -609,7 +638,7 @@ public class LevelGenerator : MonoBehaviour
         levelCamera.transform.position = new Vector3(0f, 0f, -10f);
 
         const float verticalMargin = 2f;
-        const float hudColumnRefWidth = 440f;
+        const float hudColumnRefWidth = 364f;
         const float refWidth = 1920f;
         const float refHeight = 1080f;
         const float match = 0.5f;
@@ -625,7 +654,17 @@ public class LevelGenerator : MonoBehaviour
         float availableWidthPixels = Mathf.Max(screenWidth - reservedPixels, 1f);
         float sizeForWidth = (columns * screenHeight) / (2f * availableWidthPixels);
 
-        levelCamera.orthographicSize = Mathf.Max(halfHeight, sizeForWidth);
+        float fittedSize = Mathf.Max(halfHeight, sizeForWidth);
+
+        // Pixel snap: make one sprite pixel a whole number of screen pixels so the art stays sharp.
+        float texelScale = screenHeight / (2f * fittedSize * 32f);
+        if (texelScale >= 1f)
+        {
+            texelScale = Mathf.Floor(texelScale);
+            fittedSize = screenHeight / (2f * 32f * texelScale);
+        }
+
+        levelCamera.orthographicSize = fittedSize;
     }
 
     // Small Helpers
@@ -673,7 +712,7 @@ public class LevelGenerator : MonoBehaviour
     {
         if (tilePrefab == null || powerPelletPrefab == null || outsideCorner == null || outsideWall == null || insideCorner == null || insideWall == null || tJunction == null || ghostExitWall == null || pellet == null || floor == null || bonusItem == null)
         {
-            Debug.LogError("LevelGenerator, assign every prefab and sprite in the inspector.", this);
+            Debug.LogError("LevelGenerator error, assign every prefab and sprite in the inspector.", this);
             return false;
         }
         return true;

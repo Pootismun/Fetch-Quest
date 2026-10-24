@@ -4,12 +4,18 @@ public class BorderAnimator : MonoBehaviour
 {
     [SerializeField] private float speed = 200f;
     [SerializeField] private float inset = 40f;
+    [SerializeField] private int dotCount = 96;
 
     private RectTransform[] dots;
     private RectTransform area;
 
     private void Awake()
     {
+        while (transform.childCount < dotCount)
+        {
+            Instantiate(transform.GetChild(0).gameObject, transform);
+        }
+
         area = GetComponent<RectTransform>();
         dots = new RectTransform[transform.childCount];
         for (int i = 0; i < transform.childCount; i++)

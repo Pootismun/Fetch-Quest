@@ -5,9 +5,12 @@ using UnityEngine;
 public class RoundStartManager : MonoBehaviour
 {
     [SerializeField] private TextMeshProUGUI countdownText;
+    [SerializeField] private CountdownAnimator countdownAnimator;
     [SerializeField] private GameObject blockingImage;
     [SerializeField] private MusicController musicController;
     [SerializeField] private float stepDuration = 1f;
+    [SerializeField] private float introDuration = 5f;
+    [SerializeField] private float backdropFadeTime = 0.6f;
 
     private PacStudentController dog;
     private CherryController cherryController;
@@ -21,9 +24,23 @@ public class RoundStartManager : MonoBehaviour
 
         SetGameplayEnabled(false);
 
+        if (dog != null)
+        {
+            dog.ShowStartPose();
+        }
+
+        SetGhostAnimationPaused(true);
+
+        countdownText.text = "";
+
+        while (SceneLoader.IsTransitioning)
+        {
+            yield return null;
+        }
+
         blockingImage.SetActive(true);
         countdownText.gameObject.SetActive(true);
-        countdownText.text = "3";
+        countdownText.text = "";
 
         yield return null;
 
@@ -32,16 +49,17 @@ public class RoundStartManager : MonoBehaviour
             musicController.PlayIntroMusic();
         }
 
-        string[] steps = { "3", "2", "1", "GO!" };
+        yield return new WaitForSeconds(introDuration);
 
-        foreach (string step in steps)
+        string[] steps = { "3", "2", "1", "EAT!" };
+
+        for (int i = 0; i < steps.Length; i++)
         {
-            countdownText.text = step;
-            yield return new WaitForSeconds(stepDuration);
+            yield return countdownAnimator.ShowStep(i, steps.Length, steps[i], stepDuration);
         }
 
         countdownText.gameObject.SetActive(false);
-        blockingImage.SetActive(false);
+        StartCoroutine(countdownAnimator.FadeOutBackdrop(backdropFadeTime));
 
         if (musicController != null)
         {
@@ -49,11 +67,21 @@ public class RoundStartManager : MonoBehaviour
             musicController.PlayNormalMusic();
         }
 
+        SetGhostAnimationPaused(false);
+
         SetGameplayEnabled(true);
 
         if (GameTimer.Instance != null)
         {
             GameTimer.Instance.StartTimer();
+        }
+    }
+
+    private void SetGhostAnimationPaused(bool paused)
+    {
+        foreach (GhostStateController ghost in FindObjectsByType<GhostStateController>())
+        {
+            ghost.SetAnimationPaused(paused);
         }
     }
 

@@ -25,11 +25,10 @@ public class LivesManager : MonoBehaviour
 
         lives--;
         lifeIcons[lives].SetActive(false);
-    }
 
-    [ContextMenu("Test Lose Life")]
-    private void TestLoseLife()
-    {
-        LoseLife();
+        if (DamageFeedback.Instance != null)
+        {
+            DamageFeedback.Instance.Play();
+        }
     }
 }

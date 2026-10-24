@@ -9,7 +9,6 @@ public class GhostController : MonoBehaviour
 
     private const float NormalSpeedMultiplier = 0.9f;
     private const float ScaredSpeedMultiplier = 0.5f;
-
     private const float OutwardBias = 0.5f;
 
     private static readonly Vector2Int Up = new Vector2Int(0, -1);
@@ -226,8 +225,8 @@ public class GhostController : MonoBehaviour
         stateController.SetState(GhostState.Normal);
     }
 
-    // I know reversing isn't allowed according to the brief but it doesn't make sense
-    // for the squirrels to not run away when the power pellet is eaten. ! Note for Marker
+    // I know reversing isn't allowed according to the brief but in my opinion, it doesn't make sense
+    // for the squirrels to not run away when the power pellet is eaten.
     private void ReverseNow()
     {
         if (!isMoving || leavingHouse)
@@ -542,8 +541,8 @@ public class GhostController : MonoBehaviour
         return new Vector2Int(-direction.y, direction.x);
     }
 
-    // Valid directions are walkable for ghosts and are not a back-step.
-    // A back-step is only allowed when there is no other choice (a dead end).
+    // Valid directions are walkable for ghosts and are not a back step (reverse).
+    // A back step is only allowed when there is no other choice (a dead end).
     private List<Vector2Int> GetValidDirections()
     {
         List<Vector2Int> options = new List<Vector2Int>();
