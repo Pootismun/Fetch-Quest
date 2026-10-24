@@ -1,59 +1,98 @@
-using System.Collections;
 using UnityEngine;
 
-// Plays intro music, then loops the level soundtrack (squirrel normal music).
+// Plays intro music during the round start countdown, then loops the level soundtrack (squirrel normal music).
 // Note for marker: the squirrels are the "ghosts".
 [RequireComponent(typeof(AudioSource))]
-public class NewMonoBehaviourScript : MonoBehaviour
+public class MusicController : MonoBehaviour
 {
+    [Header("Clips")]
     [SerializeField] private AudioClip introMusic;
     [SerializeField] private AudioClip squirrelNormalMusic;
-    [SerializeField] private float maxIntroSeconds = 3f;
+    [SerializeField] private AudioClip squirrelScaredMusic;
+    [SerializeField] private AudioClip squirrelDeadMusic;
 
-    // Small delay so both clips are scheduled before they need to start.
-    private const double StartDelay = 0.05;
+    [Header("Volumes (applied when the track starts)")]
+    [SerializeField, Range(0f, 1f)] private float introVolume = 1f;
+    [SerializeField, Range(0f, 1f)] private float normalVolume = 1f;
+    [SerializeField, Range(0f, 1f)] private float scaredVolume = 1f;
+    [SerializeField, Range(0f, 1f)] private float deadVolume = 1f;
+
     private AudioSource introSource;
     private AudioSource loopSource;
+
+    private float masterVolume;
+
+    private float normalMusicTime;
 
     private void Awake()
     {
         introSource = GetComponent<AudioSource>();
+        introSource.playOnAwake = false;
+        masterVolume = introSource.volume;
 
         loopSource = gameObject.AddComponent<AudioSource>();
         loopSource.playOnAwake = false;
-        loopSource.volume = introSource.volume;
+        loopSource.volume = masterVolume;
         loopSource.outputAudioMixerGroup = introSource.outputAudioMixerGroup;
     }
 
-    private void Start()
+    public void PlayIntroMusic()
     {
-        if (introMusic == null || squirrelNormalMusic == null)
+        if (introMusic == null)
         {
-            Debug.LogError("For MusicController, check that both music clips are assigned in the inspector!!!", this);
+            Debug.LogError("MusicController error, check that both music clips are assigned in the inspector!!!", this);
             return;
         }
 
-        // Intro length in seconds.
-        double introClipLength = (double)introMusic.samples / introMusic.frequency;
-
-        // Intro plays until clip ends or maxIntroSeconds passes, whichever is earliest.
-        double introPlayTime = System.Math.Min(introClipLength, maxIntroSeconds);
-
-        // Both start times use the audio clock so the switch between audios has no gap.
-        double introStart = AudioSettings.dspTime + StartDelay;
-        double loopStart = introStart + introPlayTime;
-
         introSource.clip = introMusic;
         introSource.loop = false;
-        introSource.PlayScheduled(introStart);
+        introSource.volume = masterVolume * introVolume;
+        introSource.Play();
+    }
 
-        if (introClipLength > maxIntroSeconds)
+    public void StopIntroMusic()
+    {
+        introSource.Stop();
+    }
+
+    public void StopAllMusic()
+    {
+        introSource.Stop();
+        loopSource.Stop();
+    }
+
+    public void PlayScaredMusic()
+    {
+        PlayLoop(squirrelScaredMusic, 0f, scaredVolume);
+    }
+
+    public void PlayDeadMusic()
+    {
+        PlayLoop(squirrelDeadMusic, 0f, deadVolume);
+    }
+
+    public void PlayNormalMusic()
+    {
+        PlayLoop(squirrelNormalMusic, normalMusicTime, normalVolume);
+    }
+
+    private void PlayLoop(AudioClip clip, float startTime, float trackVolume)
+    {
+        if (clip == null || loopSource.clip == clip)
         {
-            introSource.SetScheduledEndTime(loopStart);
+            return;
         }
 
-        loopSource.clip = squirrelNormalMusic;
+        // Remember where the normal track was before something else takes over.
+        if (loopSource.clip != null && loopSource.clip == squirrelNormalMusic)
+        {
+            normalMusicTime = loopSource.time;
+        }
+
+        loopSource.clip = clip;
         loopSource.loop = true;
-        loopSource.PlayScheduled(loopStart);
+        loopSource.volume = masterVolume * trackVolume;
+        loopSource.time = startTime;
+        loopSource.Play();
     }
 }

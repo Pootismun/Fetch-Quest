@@ -21,6 +21,11 @@ public class LevelGenerator : MonoBehaviour
     [Tooltip("The level is centred on (0, 0) and one unit is one tile.")]
     [SerializeField] private Vector2 bonusPosition = new Vector2(0f, -3f);
 
+    [Header("Procedural Generation")]
+    [SerializeField] private bool procedural = false;
+    [Tooltip("0 gives a new random layout every play. Any other number repeats the same layout.")]
+    [SerializeField] private int seed = 0;
+
     // 0: Empty, 1: Outside Corner, 2: Outside Wall, 3: Inside Corner
     // 4: Inside Wall, 5: Pellet, 6: Power Pellet, 7: T Junction, 8: Ghost Exit Wall
     private int[,] levelMap =
@@ -55,9 +60,138 @@ public class LevelGenerator : MonoBehaviour
 
     private int rows;   // Size of full level
     private int columns;
+    private const int TeleporterRow = 14;
     private int[,] map; // Full level after mirroring
     private int[,] links; // Which directions each wall piece links to
     private bool[,] linksKnown;
+    private bool[,] pelletEaten;
+    private int pelletsRemaining = -1;
+    public int PelletsRemaining => pelletsRemaining;
+
+    public int Rows => rows;
+    public int Columns => columns;
+
+    public bool IsWalkable(int row, int column)
+    {
+        if (row < 0 || row >= rows || column < 0 || column >= columns)
+        {
+            return false;
+        }
+
+        return !IsWall(row, column);
+    }
+
+    public const int HouseTopRow = 13;
+    public const int HouseBottomRow = 15;
+    public const int HouseLeftColumn = 11;
+    public const int HouseRightColumn = 16;
+    public const int HouseTopDoorRow = 12;
+    public const int HouseBottomDoorRow = 16;
+    public const int HouseDoorLeftColumn = 13;
+    public const int HouseDoorRightColumn = 14;
+
+    public bool IsInsideGhostHouse(int row, int column)
+    {
+        return row >= HouseTopRow && row <= HouseBottomRow && column >= HouseLeftColumn && column <= HouseRightColumn;
+    }
+
+    public bool IsGhostWalkable(int row, int column)
+    {
+        if (!IsWalkable(row, column))
+        {
+            return false;
+        }
+
+        return !IsInsideGhostHouse(row, column);
+    }
+
+    public bool IsOuterWall(int row, int column)
+    {
+        if (row < 0 || row >= rows || column < 0 || column >= columns)
+        {
+            return true;
+        }
+
+        int type = map[row, column];
+        return type == 1 || type == 2 || type == 7;
+    }
+
+    public bool HasPelletAt(int row, int column)
+    {
+        if (row < 0 || row >= rows || column < 0 || column >= columns)
+        {
+            return false;
+        }
+
+        if (pelletEaten[row, column])
+        {
+            return false;
+        }
+
+        int type = map[row, column];
+        return type == 5 || type == 6;
+    }
+
+    public bool HasRegularPelletAt(int row, int column)
+    {
+        if (row < 0 || row >= rows || column < 0 || column >= columns)
+        {
+            return false;
+        }
+
+        if (pelletEaten[row, column])
+        {
+            return false;
+        }
+
+        return map[row, column] == 5;
+    }
+
+    public void MarkPelletEaten(int row, int column)
+    {
+        if (row >= 0 && row < rows && column >= 0 && column < columns)
+        {
+            if (HasPelletAt(row, column))
+            {
+                pelletsRemaining--;
+            }
+
+            pelletEaten[row, column] = true;
+        }
+    }
+
+    public Vector3 CellToWorld(int row, int column)
+    {
+        return new Vector3(column - (columns - 1) / 2f, (rows - 1) / 2f - row, 0f);
+    }
+
+    public Vector2Int WorldToCell(Vector3 worldPosition)
+    {
+        int column = Mathf.RoundToInt(worldPosition.x + (columns - 1) / 2f);
+        int row = Mathf.RoundToInt((rows - 1) / 2f - worldPosition.y);
+        return new Vector2Int(column, row);
+    }
+
+    public bool TryGetTeleportDestination(Vector2Int fromCell, Vector2Int direction, out Vector2Int destination)
+    {
+        if (fromCell.y == TeleporterRow)
+        {
+            if (fromCell.x == 0 && direction == new Vector2Int(-1, 0))
+            {
+                destination = new Vector2Int(columns - 1, TeleporterRow);
+                return true;
+            }
+
+            if (fromCell.x == columns - 1 && direction == new Vector2Int(1, 0))
+            {
+                destination = new Vector2Int(0, TeleporterRow);
+                return true;
+            }
+        }
+
+        destination = default;
+        return false;
+    }
 
     private void Start()
     {
@@ -70,6 +204,11 @@ public class LevelGenerator : MonoBehaviour
         if (manualLevel != null)
         {
             Destroy(manualLevel);
+        }
+
+        if (procedural)
+        {
+            GenerateRandomLayout();
         }
 
         BuildFullMap();
@@ -88,13 +227,130 @@ public class LevelGenerator : MonoBehaviour
         columns = quarterColumns * 2;
 
         map = new int[rows, columns];
+        pelletEaten = new bool[rows, columns];
+
+
+        int[,] bottomSource = bottomMap != null ? bottomMap : levelMap;
+
         for (int r = 0; r < rows; r++)
         {
+            int[,] source = r < quarterRows ? levelMap : bottomSource;
             int sourceRow = r < quarterRows ? r : rows - 1 - r;
             for (int c = 0; c < columns; c++)
             {
                 int sourceColumn = c < quarterColumns ? c : columns - 1 - c;
-                map[r, c] = levelMap[sourceRow, sourceColumn];
+                map[r, c] = source[sourceRow, sourceColumn];
+            }
+        }
+    }
+
+    private System.Random rng;
+    private int[,] bottomMap;
+    private int[,] target;
+
+    private void GenerateRandomLayout()
+    {
+        rng = seed == 0 ? new System.Random() : new System.Random(seed);
+
+        target = levelMap;
+        RandomiseZones();
+
+        // The bottom half gets its own layout, so it is not a mirror of the top.
+        bottomMap = (int[,])levelMap.Clone();
+        target = bottomMap;
+        RandomiseZones();
+    }
+
+    private void RandomiseZones()
+    { 
+        // Top area: rows 2-4, columns 2-11.
+        ClearToPellets(2, 2, 4, 11);
+        FillRegion(2, 2, 4, 11);
+
+        // Left area: rows 6-7, columns 2-5.
+        ClearToPellets(6, 2, 7, 5);
+        FillRegion(6, 2, 7, 5);
+
+        PlaceRandomPowerPellet();
+    }
+
+    private void PlaceRandomPowerPellet()
+    {
+        // Remove any power pellet already in this half, then pick a new spot.
+        for (int r = 1; r <= 8; r++)
+        {
+            for (int c = 1; c <= 12; c++)
+            {
+                if (target[r, c] == 6)
+                {
+                    target[r, c] = 5;
+                }
+            }
+        }
+
+        System.Collections.Generic.List<Vector2Int> options = new System.Collections.Generic.List<Vector2Int>();
+
+        for (int r = 1; r <= 8; r++)
+        {
+            for (int c = 1; c <= 12; c++)
+            {
+                if (target[r, c] == 5 && !(r == 1 && c == 1))
+                {
+                    options.Add(new Vector2Int(c, r));
+                }
+            }
+        }
+
+        Vector2Int chosen = options[rng.Next(options.Count)];
+        target[chosen.y, chosen.x] = 6;
+    }
+
+    private void ClearToPellets(int top, int left, int bottom, int right)
+    {
+        for (int r = top; r <= bottom; r++)
+        {
+            for (int c = left; c <= right; c++)
+            {
+                target[r, c] = 5;
+            }
+        }
+    }
+
+    private void FillRegion(int top, int left, int bottom, int right)
+    {
+        int width = right - left + 1;
+
+        if (width >= 5 && (width > 5 || rng.NextDouble() < 0.4))
+        {
+            int lane = rng.Next(left + 2, right - 1);
+            FillRegion(top, left, bottom, lane - 1);
+            FillRegion(top, lane + 1, bottom, right);
+            return;
+        }
+
+        PlaceBlock(top, left, bottom - top + 1, width);
+    }
+    private void PlaceBlock(int top, int left, int blockHeight, int blockWidth)
+    {
+        for (int r = top; r < top + blockHeight; r++)
+        {
+            for (int c = left; c < left + blockWidth; c++)
+            {
+                bool edgeRow = r == top || r == top + blockHeight - 1;
+                bool edgeColumn = c == left || c == left + blockWidth - 1;
+
+                if (edgeRow && edgeColumn)
+                {
+                    target[r, c] = 3;
+                }
+                else if (edgeRow || edgeColumn)
+                {
+                    target[r, c] = 4;
+                }
+                else
+                {
+                    target[r, c] = 0;
+                }
             }
         }
     }
@@ -119,6 +375,7 @@ public class LevelGenerator : MonoBehaviour
                 }
             }
         }
+
         // Corner & Junction Calculation
         bool progress = true;
         while (progress)
@@ -157,7 +414,7 @@ public class LevelGenerator : MonoBehaviour
             }
         }
 
-        // Removes odd map pieces
+        // Removes out of place map pieces
         for (int r = 0; r < rows; r++)
         {
             for (int c = 0; c < columns; c++)
@@ -235,6 +492,21 @@ public class LevelGenerator : MonoBehaviour
         floorRenderer.size = new Vector2(columns, rows);
         floorRenderer.sortingOrder = -10;
 
+        GameObject maskObject = new GameObject("LevelMask");
+        maskObject.transform.SetParent(root.transform, false);
+        maskObject.transform.position = Vector3.zero;
+        maskObject.transform.localScale = new Vector3(columns, rows, 1f);
+
+        SpriteMask levelMask = maskObject.AddComponent<SpriteMask>();
+        levelMask.sprite = floor;
+
+        Vector2Int dogStartCell = new Vector2Int(-1, -1);
+        PacStudentController dog = FindAnyObjectByType<PacStudentController>();
+        if (dog != null)
+        {
+            dogStartCell = WorldToCell(dog.transform.position);
+        }
+
         for (int r = 0; r < rows; r++)
         {
             for (int c = 0; c < columns; c++)
@@ -244,12 +516,27 @@ public class LevelGenerator : MonoBehaviour
 
                 if (type == 5)
                 {
-                    PlacePiece(pellet, position, 0f, 1, pellets, r, c);
+                    if (r == dogStartCell.y && c == dogStartCell.x)
+                    {
+                        pelletEaten[r, c] = true;
+                    }
+                    else
+                    {
+                        GameObject pelletPiece = PlacePiece(pellet, position, 0f, 1, pellets, r, c);
+                        BoxCollider2D pelletCollider = pelletPiece.AddComponent<BoxCollider2D>();
+                        pelletCollider.isTrigger = true;
+                        Pellet pelletMarker = pelletPiece.AddComponent<Pellet>();
+                        pelletMarker.Row = r;
+                        pelletMarker.Column = c;
+                    }
                 }
                 else if (type == 6)
                 {
                     GameObject power = Instantiate(powerPelletPrefab, position, Quaternion.identity, pellets);
                     power.name = "PowerPellet_" + r + "_" + c;
+                    PowerPellet powerMarker = power.AddComponent<PowerPellet>();
+                    powerMarker.Row = r;
+                    powerMarker.Column = c;
                 }
                 else if (IsWall(r, c))
                 {
@@ -258,7 +545,17 @@ public class LevelGenerator : MonoBehaviour
             }
         }
 
-        PlaceBonusItem(root.transform);
+        pelletsRemaining = 0;
+        for (int r = 0; r < rows; r++)
+        {
+            for (int c = 0; c < columns; c++)
+            {
+                if (HasPelletAt(r,c))
+                {
+                    pelletsRemaining++;
+                }
+            }
+        }
     }
 
     private void PlaceBonusItem(Transform levelRoot)
@@ -279,7 +576,7 @@ public class LevelGenerator : MonoBehaviour
         bonusRenderer.sortingOrder = 1;
     }
 
-    private void PlacePiece(Sprite sprite, Vector3 position, float angle, int sortingOrder, Transform parent, int r, int c)
+    private GameObject PlacePiece(Sprite sprite, Vector3 position, float angle, int sortingOrder, Transform parent, int r, int c)
     {
         GameObject piece = Instantiate(tilePrefab, position, Quaternion.Euler(0f, 0f, angle), parent);
         piece.name = sprite.name + "_" + r + "_" + c;
@@ -287,6 +584,8 @@ public class LevelGenerator : MonoBehaviour
         SpriteRenderer spriteRenderer = piece.GetComponent<SpriteRenderer>();
         spriteRenderer.sprite = sprite;
         spriteRenderer.sortingOrder = sortingOrder;
+
+        return piece;
     }
 
     private Sprite SpriteFor(int type)
@@ -327,7 +626,6 @@ public class LevelGenerator : MonoBehaviour
     }
 
     // Camera Control
-
     private void FitCamera()
     {
         Camera levelCamera = Camera.main;
@@ -339,10 +637,34 @@ public class LevelGenerator : MonoBehaviour
         levelCamera.orthographic = true;
         levelCamera.transform.position = new Vector3(0f, 0f, -10f);
 
-        // Fit to Screen
-        float halfHeight = rows / 2f + CameraMargin;
-        float halfWidth = columns / 2f + CameraMargin;
-        levelCamera.orthographicSize = Mathf.Max(halfHeight, halfWidth / levelCamera.aspect);
+        const float verticalMargin = 2f;
+        const float hudColumnRefWidth = 364f;
+        const float refWidth = 1920f;
+        const float refHeight = 1080f;
+        const float match = 0.5f;
+
+        float screenWidth = Screen.width;
+        float screenHeight = Screen.height;
+
+        float scaleFactor = Mathf.Pow(screenWidth / refWidth, 1f - match) * Mathf.Pow(screenHeight / refHeight, match);
+
+        float halfHeight = rows / 2f + verticalMargin;
+
+        float reservedPixels = 2f * hudColumnRefWidth * scaleFactor;
+        float availableWidthPixels = Mathf.Max(screenWidth - reservedPixels, 1f);
+        float sizeForWidth = (columns * screenHeight) / (2f * availableWidthPixels);
+
+        float fittedSize = Mathf.Max(halfHeight, sizeForWidth);
+
+        // Pixel snap: make one sprite pixel a whole number of screen pixels so the art stays sharp.
+        float texelScale = screenHeight / (2f * fittedSize * 32f);
+        if (texelScale >= 1f)
+        {
+            texelScale = Mathf.Floor(texelScale);
+            fittedSize = screenHeight / (2f * 32f * texelScale);
+        }
+
+        levelCamera.orthographicSize = fittedSize;
     }
 
     // Small Helpers
@@ -390,7 +712,7 @@ public class LevelGenerator : MonoBehaviour
     {
         if (tilePrefab == null || powerPelletPrefab == null || outsideCorner == null || outsideWall == null || insideCorner == null || insideWall == null || tJunction == null || ghostExitWall == null || pellet == null || floor == null || bonusItem == null)
         {
-            Debug.LogError("LevelGenerator, assign every prefab and sprite in the inspector.", this);
+            Debug.LogError("LevelGenerator error, assign every prefab and sprite in the inspector.", this);
             return false;
         }
         return true;
